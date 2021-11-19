@@ -1,31 +1,31 @@
 """Helper File""" 
 # Convert piece-wise constant p (design region) to pvec (whole domain)
-function ρ_extend(ρ0; gridap)
-    ρ_vec = zeros(num_free_dofs(gridap.FE_P))
-    ρi = 0
+function p_extend(p0; gridap)
+    p_vec = zeros(num_free_dofs(gridap.FE_P))
+    pi = 0
     @assert length(gridap.tags) == num_free_dofs(gridap.FE_P)
     for i = 1 : length(gridap.tags)
         if gridap.tags[i] == gridap.design_tag
-            ρi += 1
-            ρ_vec[i] = ρ0[ρi]
+            pi += 1
+            p_vec[i] = p0[pi]
         end
     end
-    ρ_vec
+    p_vec
 end
 
 # Extract the design region part from a whole vector
-function ρ_extract(ρ_vec; gridap)
-    ρ0 = zeros(eltype(ρ_vec), gridap.np)
-    ρi = 0
-    @assert length(ρ_vec) == length(gridap.tags)
+function p_extract(p_vec; gridap)
+    p0 = zeros(eltype(p_vec), gridap.np)
+    pi = 0
+    @assert length(p_vec) == length(gridap.tags)
     for i = 1 : length(gridap.tags)
         if gridap.tags[i] == gridap.design_tag
-            ρi += 1
-            ρ0[ρi] = ρ_vec[i]
+            pi += 1
+            p0[pi] = p_vec[i]
         end
     end
-    @assert gridap.np == ρi
-    ρ0
+    @assert gridap.np == pi
+    p0
 end
 
 # Gaussian Distribution function with center x0
@@ -69,28 +69,14 @@ end
 
 function Interpolated_Initial_Guess(gridap)
     gridap_guess = GridapFE("InitialGuess/geometry.msh", 1, 2, ["DirichletEdges", "DirichletNodes"], ["DesignNodes", "DesignEdges"], ["Target"], [], true)
-    ρW_temp = readdlm("InitialGuess/ρW_opt_value.txt", Float64)
-    ρW_temp = ρW_temp[:]
-    ρ_init_guess = ρW_temp[1 : gridap_guess.np]
-    ρh_guess = FEFunction(gridap_guess.FE_P, ρ_extend(ρ_init_guess; gridap=gridap_guess))
-    ρfh_init = interpolate(Interpolable(ρh_guess),gridap.FE_Pf)
-    ρh_init = interpolate(Interpolable(ρfh_init),gridap.FE_P)
-    ρ_init = ρ_extract(get_free_dof_values(ρh_init); gridap)
-    return ρ_init
-end
-
-function num_main_values(Gvec::Vector, cutoff=0.99)
-    nmv = length(Gvec)
-    gsum = sum(abs.(Gvec))
-    gtemp = 0
-    for i=1:length(Gvec)
-        gtemp += abs(Gvec[i])
-        if (gtemp)>cutoff*gsum
-            nmv = i
-            break
-        end
-    end
-    return nmv
+    pW_temp = readdlm("InitialGuess/pW_opt_value.txt", Float64)
+    pW_temp = pW_temp[:]
+    p_init_guess = pW_temp[1 : gridap_guess.np]
+    ph_guess = FEFunction(gridap_guess.FE_P, p_extend(p_init_guess; gridap=gridap_guess))
+    pfh_init = interpolate(Interpolable(ph_guess),gridap.FE_Pf)
+    ph_init = interpolate(Interpolable(pfh_init),gridap.FE_P)
+    p_init = p_extract(get_free_dof_values(ph_init); gridap)
+    return p_init
 end
 
 

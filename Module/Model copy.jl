@@ -1,30 +1,32 @@
 """This file defines all models"""
 struct PhysicalParameters
-    ω::Float64                   # Frequency
-    nf::Float64                  # Fluid (water)
-    nm::Float64                  # Metal
-    ns::Float64                  # Substrate
+    k::Float64                   # Wavenumber of free space
+    kb::VectorValue{2,Float64}   # Bloch wavevector
+    ω::Float64                   # Angular frequency
+    ϵ1::Float64                  # Electric permittivity for material 1 y > 0
+    ϵ2::Float64                  # Electric permittivity for material 2 y < 0
+    ϵ3::Float64                  # Electric permittivity for potential waveguide
+    ϵd::Float64                  # Electric permittivity for design material
     μ::Float64                   # Magnetic permeability
     R::Float64                   # Reflection of PML
+    σs::Vector{Float64}          # PML parameter
     dpml::Float64                # Thickness of PML
     LHp::Vector{Float64}         # Start of PML for x, y > 0
     LHn::Vector{Float64}         # Start of PML for x, y < 0
+    wg_center::Vector{Float64}   # Center of waveguide
+    wg_size::Vector{Float64}     # Size of waveguide
 end
 
 # PML coordinate streching functions
 function s_PML(x; phys)
-    σ1 = -3 / 4 * log(phys.R) / phys.dpml
-    σ2 = -3 / 4 * log(phys.R) / phys.dpml / real(phys.ns)
-    σ = x[2]>0 ? σ1 : σ2
+    σ = x[2]>0 ? phys.σs[1] : phys.σs[2]
     xf = [x[1], x[2]]
     u = @. ifelse(xf > 0 , xf - phys.LHp, - xf - phys.LHn)
     return @. ifelse(u > 0,  1 + (1im * σ / phys.k) * (u / phys.dpml)^2, $(1.0+0im))
 end
 
 function ds_PML(x; phys)
-    σ1 = -3 / 4 * log(phys.R) / phys.dpml
-    σ2 = -3 / 4 * log(phys.R) / phys.dpml / sqrt(ϵs)
-    σ = x[2]>0 ? σ1 : σ2
+    σ = x[2]>0 ? phys.σs[1] : phys.σs[2]
     xf = [x[1], x[2]]
     u = @. ifelse(xf > 0 , xf - phys.LHp, - xf - phys.LHn)
     ds = @. ifelse(u > 0, (2im * σ / phys.k) * (1 / phys.dpml)^2 * u, $(0.0+0im))
@@ -43,28 +45,34 @@ end
 Fields.∇(Λf::Λ) = x -> TensorValue{2, 2, ComplexF64}(-(Λf(x)[1])^2 * ds_PML(x; Λf.phys)[1], 0, 0, -(Λf(x)[2])^2 * ds_PML(x; Λf.phys)[2])
 
 function ξ0(x; phys)
-    return x[2] > 0 ? 1.0 + 0im : 1 / phys.ϵs + 0im
+    if phys.ϵ3 == 0
+        return x[2] > 0 ? 1 / phys.ϵ1 : 1 / phys.ϵ2
+    elseif abs(x[1] - phys.wg_center[1]) <= phys.wg_size[1] / 2 && abs(x[2] - phys.wg_center[2]) <= phys.wg_size[2] / 2
+        return 1 / phys.ϵ3
+    else
+        return 1 / phys.ϵ1
+    end
 end
 
-ξd(p, ϵf, ϵm, α)= 1 / ((ϵf + (ϵm - ϵmin) * p) * (1 + α * 1im)) - 1/ϵmin # in the design region
+ξd(ρ, ϵmin, ϵmax, α)= 1 / ((ϵmin + (ϵmax - ϵmin) * ρ) * (1 + α * 1im)) - 1/ϵmin # in the design region
 
 a_base(u, v; phys) = (x -> ξ0(x; phys)) * ((∇ .* (Λ(phys) * v) - 1im * phys.kb * v) ⊙ ((Λ(phys) .* ∇(u) + 1im * phys.kb * u))) - (phys.k^2 * phys.μ * (v * u))
 
-a_design(u, v, pth; phys, control) = ((p -> ξd(p, phys.ϵ1, phys.ϵd, control.α)) ∘ pth) * ((∇(v) - 1im *phys.kb * v) ⊙ (∇(u) + 1im *phys.kb * u)) - phys.k^2 * 1im * control.α * phys.μ * (v * u)
+a_design(u, v, ρth; phys, control) = ((ρ -> ξd(ρ, phys.ϵ1, phys.ϵd, control.α)) ∘ ρth) * ((∇(v) - 1im *phys.kb * v) ⊙ (∇(u) + 1im *phys.kb * u)) - phys.k^2 * 1im * control.α * phys.μ * (v * u)
 
 a_gram(u, v; phys) = (phys.k^2 * phys.μ * (v * u))
 
-function MatrixA(pth; phys, control, gridap)
+function MatrixA(ρth; phys, control, gridap)
     A_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-        ∫(a_base(u, v; phys))gridap.dΩ + ∫(a_design(u, v, pth; phys, control))gridap.dΩ_d
+        ∫(a_base(u, v; phys))gridap.dΩ + ∫(a_design(u, v, ρth; phys, control))gridap.dΩ_d
     end
     return lu(A_mat)
 end
 
-function MatrixB(pbh; control, gridap)
-    if control.Bp
+function MatrixB(ρbh; control, gridap)
+    if control.Bρ
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-            ∫(pbh * (∇(u) ⋅ ∇(v)))gridap.dΩ_d
+            ∫(ρbh * (∇(u) ⋅ ∇(v)))gridap.dΩ_d
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
