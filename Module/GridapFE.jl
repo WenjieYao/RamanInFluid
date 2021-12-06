@@ -66,21 +66,13 @@ function GridapFE(meshfile, order, degree, diritags, neumanntags, targettags, so
     Γ_d = BoundaryTriangulation(model; tags = neumanntags)
     dΓ_d = Measure(Γ_d, degree)
 
-    dΓ_t = Array{Measure}(undef, length(targettags))
-    nb = Array{Gridap.CellData.GenericCellField}(undef, length(targettags))
-    for tag_i = 1 : length(targettags)
-        targettag = targettags[tag_i]
-        Γ_t = BoundaryTriangulation(model; tags = targettag)
-        dΓ_t[tag_i] = Measure(Γ_t, degree)
-        nb[tag_i] = get_normal_vector(Γ_t)
-    end
 
-    if (length(sourcetags) > 0)
-        Γ_s = BoundaryTriangulation(model; tags = sourcetags)
-        dΓ_s = Measure(Γ_s, degree)
-    else
-        dΓ_s = dΓ_t[1]
-    end
+    Γ_t = BoundaryTriangulation(model; tags = targettags)
+    dΓ_t = Measure(Γ_t, degree)
+    nb = get_normal_vector(Γ_t)
+
+    Γ_s = BoundaryTriangulation(model; tags = sourcetags)
+    dΓ_s = Measure(Γ_s, degree)
 
     gridap = GridapParameters(FE_V,FE_U,FE_Q,FE_P,FE_Qf,FE_Pf,np,Ω,dΩ,dΩ_d,dΓ_d,dΓ_t,dΓ_s,nb,tags,design_tag)
     return gridap
