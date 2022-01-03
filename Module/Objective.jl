@@ -1,14 +1,24 @@
 NO_FIELDS = ZeroTangent()
-# Objective trace 
-function g_pf(pf_vec; O_mat, W_mat, phys, control, gridap)
+function g0_pf(pf_vec; kb, phys1, phys2, control, gridap)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
-    A_mat = MatrixA(pth; phys, control, gridap)
-    B_mat = MatrixB(pth; control, gridap)
-    U_mat = A_mat \ (B_mat * W_mat)
-    g_temp = tr((U_mat' * O_mat * U_mat) / (W_mat' * B_mat * W_mat))
-    @assert abs(imag(g_temp) / real(g_temp)) < 1e-6
-    real(g_temp)
+    A1_mat = MatrixA(pth, kb; phys=phys1, control, gridap)
+    b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
+    u1_vec = A1_mat\b1_vec
+    u1h = FEFunction(gridap.FE_U, u1_vec)
+    
+    # B_mat = MatrixB(pth, u1h; control, gridap)
+    # B_mat = MatrixB(pth, u1fix; control, gridap)
+    A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
+    o_vec = VectorO(1, 1; gridap)
+    v2_vec = A2_mat'\o_vec
+    # g_temp = v2_vec' * B_mat * v2_vec
+    # g_temp = v2fix_vec' * B_mat * v2fix_vec
+    # @assert abs(imag(g_temp) / real(g_temp)) < 1e-6
+    # real(g_temp)
+    v2h = FEFunction(gridap.FE_U, v2_vec)
+    sum(∫((1 - 1 * pth) * abs2(∇(v2h) ⋅ ∇(u1h)))gridap.dΩ_d)
+    # sum(∫((1 - pth) * abs2(v2h * u1h))gridap.dΩ_d)
 end
 
 #pf = pf_p0(p0)
@@ -20,60 +30,51 @@ function pf_p0(p0; control, gridap)
     pf_vec
 end
 
-function MatrixG(x::Vector; A_mat, B_mat, O_mat)
-    A_mat' \ (O_mat * (A_mat \ (B_mat * x)))
-end
-
 # Chain Rule : 
 # dg/dpf=dg/dg * dg/dpf
-function rrule(::typeof(g_pf), pf_vec; O_mat, W_mat, phys, control, gridap)
+function rrule(::typeof(g0_pf), pf_vec; kb, phys1, phys2, control, gridap)
     function U_pullback(dgdg)
-      NO_FIELDS, dgdg * Dgdpf(pf_vec, O_mat, W_mat; phys, control, gridap)
+      NO_FIELDS, dgdg * Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap)
     end
-    g_pf(pf_vec; O_mat, W_mat, phys, control, gridap), U_pullback
+    g0_pf(pf_vec; kb, phys1, phys2, control, gridap), U_pullback
 end
 
 Dptdpf(pf; control) = control.flag_t ? control.β * (1.0 - tanh(control.β * (pf - control.η))^2) / (tanh(control.β * control.η) + tanh(control.β * (1.0 - control.η))) : 1.0
 
-Dξdpf(pf, ϵmin, ϵmax; control)= (ϵmin - ϵmax) / (ϵmin + (ϵmax - ϵmin) * Threshold(pf; control))^2 / (1 + control.α * 1im) * Dptdpf(pf; control)
+Dξdpf(pf, nf, nm, α)= 2 * (nf - nm) / (nf + (nm - nf) * Threshold(pf; control))^3 / (1 + control.α * 1im) * Dptdpf(pf; control)
 
-DAdpf(pfh, u, v; phys, control) = ((pf -> Dξdpf(pf, phys.ϵ1, phys.ϵd; control)) ∘ pfh) * ((∇(v) - 1im *phys.kb * v) ⊙ (∇(u) + 1im *phys.kb * u))
+DAdpf(u, v, pfh, kb; phys, control) = ((p -> Dξdpf(p, phys.nf, phys.nm, control.α)) ∘ pfh) * ((∇(v) - 1im * kb * v) ⊙ (∇(u) + 1im * kb * u))
 
-DBdpf(pfh, u, v; control) = ((pf -> Dptdpf(pf; control)) ∘ pfh) * (∇(v) ⊙ ∇(u))
-
-function Dgdpf(pf_vec, O_mat, W_mat; phys, control, gridap)
+function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
-    A_mat = MatrixA(pth; phys, control, gridap)
-    B_mat = MatrixB(pth; control, gridap)
+    A1_mat = MatrixA(pth, kb; phys=phys1, control, gridap)
+    b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
+    u1_vec = A1_mat \ b1_vec
+    u1h = FEFunction(gridap.FE_U, u1_vec)
     
-    U_mat = A_mat \ (B_mat * W_mat)
-    WBW = W_mat' * B_mat * W_mat
-    dgdU = (O_mat * U_mat) / WBW
-    Z_mat = A_mat' \ dgdU
-    #Z_mat = A_mat' \ ((O_mat * U_mat) / WBW)
-    Wr_mat = W_mat / WBW
-    Wl_mat = W_mat * (dgdU' * U_mat)
-    #Wl_mat = W_mat / WBW * (U_mat' * O_mat * U_mat)
+    B_mat = MatrixB(pth, u1h; control, gridap)
+    # B_mat = MatrixB(pth, u1fix; control, gridap)
+    A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
+    o_vec = VectorO(1, 1; gridap)
+    v2_vec = A2_mat' \ o_vec
+    v2h = FEFunction(gridap.FE_U, v2_vec)
+    # v2h = FEFunction(gridap.FE_U, v2fix_vec)
     
-    dgdpf = zeros(num_free_dofs(gridap.FE_Pf))
-    for k_i = 1 : control.K
-        uh = FEFunction(gridap.FE_U, U_mat[:, k_i])
-        zh = FEFunction(gridap.FE_V, conj(Z_mat[:, k_i]))
-        if control.Bp
-            wh = FEFunction(gridap.FE_U, W_mat[:, k_i])
-            wrh = FEFunction(gridap.FE_U, Wr_mat[:, k_i])
-            wlh = FEFunction(gridap.FE_V, conj(Wl_mat[:, k_i]))
-            l_temp2(dp) = ∫(real(2 * DBdpf(pfh, wh, zh; control) - 2 * DAdpf(pfh, uh, zh; phys, control) - DBdpf(pfh, wrh, wlh; control)) * dp)gridap.dΩ_d
-            dgdpf += assemble_vector(l_temp2, gridap.FE_Pf)
-        else
-            l_temp1(dp) = ∫(- 2 * real(DAdpf(pfh, uh, zh; phys, control)) * dp)gridap.dΩ_d
-            dgdpf += assemble_vector(l_temp1, gridap.FE_Pf)
-        end
-    end
-    return dgdpf
+    v2conjh = FEFunction(gridap.FE_U, conj(v2_vec))
+    w2_vec =  A2_mat \ (B_mat * v2_vec)
+    w2h = FEFunction(gridap.FE_U, w2_vec) 
+    
+    B_temp = MatrixB(pth, v2h; control, gridap)
+    w1_vec = A1_mat' \ (B_temp * u1_vec)
+    w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
+    l_temp(dp) = ∫(real(-((pf->Dptdpf(pf; control))∘pfh) * abs2(∇(v2h) ⋅ ∇(u1h))
+                         - 2 * 1 * DAdpf(u1h, w1conjh, pfh, kb; phys=phys1, control)
+                         - 2 * 1 * DAdpf(w2h, v2conjh, pfh, kb; phys=phys2, control)) * dp)gridap.dΩ_d
+    dg0dpf = assemble_vector(l_temp, gridap.FE_Pf)
+    return dg0dpf
 end
-        
+
 # dg/dp=dg/dpf*dpf/dp
 function rrule(::typeof(pf_p0), p0; control, gridap)
   function pf_pullback(dgdpf)
@@ -96,110 +97,21 @@ function Dgdp(dgdpf; control, gridap)
     end
 end
 
+
 # Final objective function
-function g_p(p0::Vector; O_mat, W_mat, phys, control, gridap)
+function g0_p(p0::Vector; kb, phys1, phys2, control, gridap)
     pf_vec = pf_p0(p0; control, gridap)
-    g_pf(pf_vec; O_mat, W_mat, phys, control, gridap)
+    g0_pf(pf_vec; kb, phys1, phys2, control, gridap)
 end
 
-function g_p(p0::Vector, grad::Vector; O_mat, W_mat, phys, control, gridap)
+function g0_p(p0::Vector, grad::Vector; kb, phys1, phys2, control, gridap)
     if length(grad) > 0
-        dgdp, = Zygote.gradient(p -> g_p(p; O_mat, W_mat, phys, control, gridap), p0)
-        grad[:] = dgdp
+        dgdp, = Zygote.gradient(p -> g0_p(p; kb, phys1, phys2, control, gridap), p0)
+        grad[:] = dgdp * control.Amp
     end
-    g_value = g_p(p0::Vector; O_mat, W_mat, phys, control, gridap)
-    return g_value
-end
-
-# Adding W dependence
-function DgdW(A, W, B, O)
-    WBW = W' * B * W
-    U = A \ (B * W)
-    B' * (A' \ (O * (U / WBW))) - (B * W / WBW) * (U' * (O * (U / WBW)))
-end
-
-function g_pW(pW::Vector, grad::Vector; O_mat, phys, control, gridap)
-    N = num_free_dofs(gridap.FE_U)
-    @assert length(pW) == (gridap.np + 2 * N * control.K)
-    p0 = zeros(gridap.np)
-    for i = 1 : gridap.np
-        p0[i] = pW[i]
-    end
-    W_mat = reinterpret(ComplexF64, reshape(pW[gridap.np + 1 : end], (2 * N, control.K)))
-
-    if length(grad) > 0
-        pf_vec = pf_p0(p0; control, gridap)
-        pfh = FEFunction(gridap.FE_Pf, pf_vec)
-        pth = (pf -> Threshold(pf; control)) ∘ pfh
-        
-        A_mat = MatrixA(pth; phys, control, gridap)
-        B_mat = MatrixB(pth; control, gridap)
-        
-        dgdp, = Zygote.gradient(p -> g_p(p; O_mat, W_mat, phys, control, gridap), p0)
-        grad[1 : gridap.np] = dgdp * control.Amp
-
-        dgdW = reinterpret(Float64, DgdW(A_mat, W_mat, B_mat, O_mat))
-        grad[gridap.np + 1 : end] = 2 * control.Amp * dgdW[:]
-    end
-    g_value = g_p(p0; O_mat, W_mat, phys, control, gridap)
+    g_value = g0_p(p0::Vector; kb, phys1, phys2, control, gridap)
     open("gvalue.txt", "a") do io
         write(io, "$g_value \n")
     end
     return g_value * control.Amp
-end
-
-
-function gpW_optimize(p_init, TOL = 1e-4, MAX_ITER = 500, OptAlg = :LD_MMA, IsQl = false; phys, control, gridap)
-    # Assemble matrices
-    N = num_free_dofs(gridap.FE_U)
-    if IsQl
-        O_mat = MatrixOl(phys.k, phys.ϵ1; gridap)
-    else
-        O_mat = MatrixOc(phys.k, phys.ϵ1; gridap)
-    end
-    
-    ##################### Optimize #################
-    opt = Opt(OptAlg, gridap.np + 2 * N * control.K)
-    lb = zeros(gridap.np + 2 * N * control.K)
-    lb[gridap.np + 1 : end] = - ones(2 * N * control.K) * Inf
-    ub = ones(gridap.np + 2 * N * control.K)
-    ub[gridap.np + 1 : end] = ones(2 * N * control.K) * Inf
-    opt.lower_bounds = lb
-    opt.upper_bounds = ub
-    opt.ftol_rel = TOL
-    opt.maxeval = MAX_ITER
-    opt.max_objective = (pW, grad) -> g_pW(pW, grad; O_mat, phys, control, gridap)
-    if (length(p_init) == 0)
-        pW_initial = readdlm("pW_opt_value.txt", Float64)
-        pW_initial = pW_initial[:]
-    else
-        p_initial = p_init
-        pW_initial = zeros(gridap.np + 2 * N * control.K)
-        pW_initial[1 : gridap.np] = p_initial[:]
-        pf_vec = pf_p0(p_initial; control, gridap)
-        pfh = FEFunction(gridap.FE_Pf, pf_vec)
-        pth = (pf -> Threshold(pf; control)) ∘ pfh
-        
-        A_mat = MatrixA(pth; phys, control, gridap)
-        B_mat = MatrixB(pth; control, gridap)
-        
-        G_ii, W_raw, info = eigsolve(x -> MatrixG(x; A_mat, B_mat, O_mat), rand(ComplexF64, N), min(5, control.K), :LM; krylovdim = 30)
-        W_mat = rand(ComplexF64, N, control.K)
-        for ib = 1 : min(5, control.K)
-            W_mat[:, ib] = W_raw[ib]
-        end
-        W_mat = reinterpret(Float64, W_mat)
-        pW_initial[gridap.np + 1 : end] = W_mat[:]
-        @show abs(sum(G_ii))
-    end
-    if control.pv < 1
-        inequality_constraint!(opt, (x, g) -> VolumeConstraint(x, g; control, gridap), 1e-2)
-    end
-    if control.c > 0
-        equality_constraint!(opt, (x, g) -> LWConstraint(x, g; control, gridap), 1e-8)
-    end
-    (g_opt, pW_opt, ret) = optimize(opt, pW_initial)
-    @show numevals = opt.numevals # the number of function evaluations
-    
-    return g_opt / control.Amp, pW_opt
 end
