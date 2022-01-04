@@ -1,11 +1,10 @@
 using Gridap, Gridap.Geometry, Gridap.Fields
 using Gmsh, GridapGmsh
-using GLMakie, DelimitedFiles, Interpolations
+using DelimitedFiles, Interpolations
 using LinearAlgebra, SparseArrays, KrylovKit
 using ChainRulesCore, Zygote
 using PartitionedArrays
 using NLopt
-using GridapMakie
 
 import Gridap.CellData: Interpolable
 import ChainRulesCore: rrule
