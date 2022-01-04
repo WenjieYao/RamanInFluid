@@ -28,8 +28,8 @@ axislegend(ax, [lin1, lin2], ["Real", "Imag"], position = :rt,
 scene
 
 """
-function RefractiveIndex(material)
-    filename = "Materials/"*material*".txt"
+function RefractiveIndex(material, main_path)
+    filename = main_path*"Materials/"*material*".txt"
     RawData = (open(readdlm, filename))
 
     λ_raw = RawData[2:end,1] * 1e3

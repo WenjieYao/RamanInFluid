@@ -115,3 +115,32 @@ function g0_p(p0::Vector, grad::Vector; kb, phys1, phys2, control, gridap)
     end
     return g_value * control.Amp
 end
+
+function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, phys2, control, gridap)
+    ##################### Optimize #################
+    opt = Opt(:LD_MMA, gridap.np)
+    lb = zeros(gridap.np)
+    ub = ones(gridap.np)
+    opt.lower_bounds = lb
+    opt.upper_bounds = ub
+    opt.ftol_rel = TOL
+    opt.maxeval = MAX_ITER
+    opt.max_objective = (p0, grad) -> g0_p(p0, grad; kb=0, phys1, phys2, control, gridap)
+    if (length(p_init)==0)
+        p_initial = readdlm("p_opt_value.txt", Float64)
+        p_initial = p_initial[:]
+    else
+        p_initial = p_init[:]
+    end
+    if control.pv < 1
+        inequality_constraint!(opt, (x, g) -> VolumeConstraint(x, g; control, gridap), 1e-2)
+    end
+    if control.c > 0
+        equality_constraint!(opt, (x, g) -> LWConstraint(x, g; control, gridap), 1e-8)
+    end
+
+    (g_opt, p_opt, ret) = optimize(opt, p_initial)
+    @show numevals = opt.numevals # the number of function evaluations
+    
+    return g_opt / control.Amp, p_opt
+end

@@ -72,8 +72,6 @@ function MatrixB(pth, uh; control, gridap)
     if control.Bp
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
             ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d
-            # ∫((1 - pth) * ((∇(v) ⋅ ∇(uh)) * conj(∇(u) ⋅ ∇(uh))))gridap.dΩ_d
-            # ∫((1 - pth) * ((v*uh) * conj(u*uh)))gridap.dΩ_d
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
