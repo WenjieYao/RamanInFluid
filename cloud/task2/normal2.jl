@@ -11,7 +11,7 @@ import ChainRulesCore: rrule
 import Gmsh: gmsh
 
 
-main_path = "/home/gridasan/wyao/Research/RamanInFluid/"
+main_path = "/home/gridsan/wyao/Research/RamanInFluid/"
 include(main_path*"Materials/Materials.jl")
 include(main_path*"Module/Mesh_Periodic.jl")
 include(main_path*"Module/Helper.jl")
