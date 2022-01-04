@@ -30,10 +30,10 @@ hsub = 100        # Height of substrate domain below design domain
 dpml = 100        # Thickness of the PML
 
 # Characteristic length (controls the resolution, smaller the finer)
-resol = 100        # Number of points per wavelength
+resol = 75        # Number of points per wavelength
 l1 = L/resol      # Air
 l2 = l1/2.0       # Design domain
-l3 = l1           # PML
+l3 = l1*2           # PML
 
 meshfile = "geometry.msh"
 geo_param = PeriodicGeometry(L, hair, hs, ht, hd, hsub, dpml, l1, l2, l3)
@@ -107,10 +107,10 @@ for bi = 1 : 10
     control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd)
 
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 50; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 200; phys1, phys2, control, gridap)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 50; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 200; phys1, phys2, control, gridap)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)
