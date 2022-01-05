@@ -49,7 +49,7 @@ function ξ0(x; phys)
     elseif x[2] >=0 && x[2] < phys.hd
         return 1 / phys.nf^2 + 0im
     else 
-        return 1.0 + 0im
+        return 1 / phys.nf^2 + 0im
     end
 end
 

@@ -92,11 +92,11 @@ phys1 = PhysicalParameters(ω1, nf, nm1, nm1, μ, R, dpml, LHp, LHn, hd)
 ω2 = 2 * π / λ2
 phys2 = PhysicalParameters(ω2, nf, nm2, nm2, μ, R, dpml, LHp, LHn, hd)
 
-p_init_fun(x) = x[2] < 0.2 * hd ? 1 : 0
+p_init_fun(x) = x[2] < 0.8 * hd ? 1 : 0
 lc_temp(v) = ∫(v * x->p_init_fun(x))gridap.dΩ
 pc_vec = assemble_vector(lc_temp, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
-p_init[p_init .> 0] .= 1
+p_init[p_init .> 0] .= 0.5
 
 β_list = [5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 80.0, 80.0, 80.0]
 # β_list = [80.0, 80.0, 80.0, 80.0, 80.0]
