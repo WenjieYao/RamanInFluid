@@ -102,7 +102,7 @@ p_init[p_init .> 0] .= 0.5
 # β_list = [80.0, 80.0, 80.0, 80.0, 80.0]
 
 g_opt = 0
-for bi = 1 : 10
+for bi = 7 : 10
     β = β_list[bi]
     control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd)
 
