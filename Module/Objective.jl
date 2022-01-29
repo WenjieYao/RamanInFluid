@@ -7,17 +7,17 @@ function g0_pf(pf_vec; kb, phys1, phys2, control, gridap)
     u1_vec = A1_mat\b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
-    # B_mat = MatrixB(pth, u1h; control, gridap)
+    B_mat = MatrixB(pth, u1h; control, gridap)
     # B_mat = MatrixB(pth, u1fix; control, gridap)
     A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
     o_vec = VectorO(1, 1; gridap)
     v2_vec = A2_mat'\o_vec
-    # g_temp = v2_vec' * B_mat * v2_vec
+    g_temp = v2_vec' * B_mat * v2_vec
     # g_temp = v2fix_vec' * B_mat * v2fix_vec
-    # @assert abs(imag(g_temp) / real(g_temp)) < 1e-6
-    # real(g_temp)
-    v2h = FEFunction(gridap.FE_U, v2_vec)
-    sum(∫((1 - 1 * pth) * abs2(∇(v2h) ⋅ ∇(u1h)))gridap.dΩ_d)
+    @assert abs(imag(g_temp) / real(g_temp)) < 1e-6
+    real(g_temp)
+    # v2h = FEFunction(gridap.FE_U, v2_vec)
+    # sum(∫((1 - 1 * pth) * abs2(∇(v2h) ⋅ ∇(u1h)))gridap.dΩ_d)
     # sum(∫((1 - pth) * abs2(v2h * u1h))gridap.dΩ_d)
 end
 

@@ -17,6 +17,7 @@ struct ControllingParameters
     c::Float64               # Foundary constraint parameter
     ηe::Float64              # Foundary constraint parameter
     ηd::Float64              # Foundary constraint parameter
+    hrd::Vector{Float64}     # Height of Raman region
 end
 # pf_vec = Filter(p_vec)
 #a_f(r,u,v) = ∇(v)⊙(TensorValue(r[1]^2,0,0,r[2]^2)⋅∇(u))+v⊙u

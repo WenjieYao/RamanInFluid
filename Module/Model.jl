@@ -68,10 +68,19 @@ function MatrixA(pth, kb; phys, control, gridap)
     return lu(A_mat)
 end
 
+function fr(x, hr, hd)
+    if x[2] > hd && x[2] < hr + hd
+        return 1
+    else
+        return 0
+    end
+end
+
 function MatrixB(pth, uh; control, gridap)
     if control.Bp
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-            ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d
+            ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d + 
+            ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
