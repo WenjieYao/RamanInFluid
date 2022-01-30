@@ -15,7 +15,7 @@ end
 # PML coordinate streching functions
 function s_PML(x; phys)
     σ1 = -3 / 4 * log(phys.R) / phys.dpml
-    σ2 = -3 / 4 * log(phys.R) / phys.dpml / min(real(phys.ns), 1e-2)
+    σ2 = -3 / 4 * log(phys.R) / phys.dpml / max(real(phys.ns), 1e-2)
     σ = x[2]>0 ? σ1 : σ2
     xf = [x[1], x[2]]
     u = @. ifelse(xf > 0 , xf - phys.LHp, - xf - phys.LHn)
@@ -24,7 +24,7 @@ end
 
 function ds_PML(x; phys)
     σ1 = -3 / 4 * log(phys.R) / phys.dpml
-    σ2 = -3 / 4 * log(phys.R) / phys.dpml / min(real(phys.ns), 1e-2)
+    σ2 = -3 / 4 * log(phys.R) / phys.dpml / max(real(phys.ns), 1e-2)
     σ = x[2]>0 ? σ1 : σ2
     xf = [x[1], x[2]]
     u = @. ifelse(xf > 0 , xf - phys.LHp, - xf - phys.LHn)
@@ -84,7 +84,7 @@ function MatrixB(pth, uh; control, gridap)
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-            ∫(u*v)gridap.dΓ_s
+            ∫((x->GaussianD(x, hrd, [2,2]))* (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
         end
     end
     return B_mat
@@ -112,4 +112,12 @@ function VectorO(Ey_eig, Mode_norm; gridap)
     l_temp(v) = ∫(v * Ey_eig / Mode_norm)gridap.dΓ_t
     o_vec = assemble_vector(l_temp, gridap.FE_V)
     return o_vec
+end
+
+# Objective matrix for total emitted power from a circle
+function MatrixOc(ω, ϵ; gridap)
+    # Assemble the matrix
+    return assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
+        ∫( Sp(u, v, ω, ϵ) ⋅ (x -> (x / norm(x))) )gridap.dΓ_t
+    end
 end
