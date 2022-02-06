@@ -10,7 +10,7 @@ function gs_pf(pf_vec; kb, phys1, phys2, control, gridap)
     braman(v) = ∫((x->GaussianD(x, control.hrd, [2,2]))*(∇(v) ⋅ ∇(u1h)))gridap.dΩ
     b_raman = assemble_vector(braman, gridap.FE_V)
     A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
-    v2_vec = A2_mat'\b_raman
+    v2_vec = A2_mat\b_raman
 
     O_mat = MatrixOc(phys2.ω, phys2. nf^2; gridap)
     g_temp = v2_vec' * O_mat * v2_vec
@@ -52,7 +52,7 @@ function Dgsdpf(pf_vec; kb, phys1, phys2, control, gridap)
     
     b1raman(v) = ∫((x->GaussianD(x, control.hrd, [2,2]))*(∇(v) ⋅ ∇(w2h)))gridap.dΩ
     b1_raman = assemble_vector(b1raman, gridap.FE_V)
-    w1_vec = A1_mat' \ conj(b1_raman)
+    w1_vec = A1_mat' \ b1_raman
     w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
     l_temp(dp) = ∫(real( - 2 * 1 * DAdpf(u1h, w1conjh, pfh, kb; phys=phys1, control)
                          - 2 * 1 * DAdpf(v2h, w2conjh, pfh, kb; phys=phys2, control)) * dp)gridap.dΩ_d
