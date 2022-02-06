@@ -68,7 +68,7 @@ function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap)
     B_temp = MatrixB(pth, v2h; control, gridap)
     w1_vec = A1_mat' \ (B_temp * u1_vec)
     w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
-    l_temp(dp) = ∫(real(-((pf->Dptdpf(pf; control))∘pfh) * abs2(∇(v2h) ⋅ ∇(u1h))
+    l_temp(dp) = ∫(real(-((pf->Dptdpf(pf; control))∘pfh) * abs2(∇(v2h) ⋅ ∇(u1h)) * control.Bp
                          - 2 * 1 * DAdpf(u1h, w1conjh, pfh, kb; phys=phys1, control)
                          - 2 * 1 * DAdpf(w2h, v2conjh, pfh, kb; phys=phys2, control)) * dp)gridap.dΩ_d
     dg0dpf = assemble_vector(l_temp, gridap.FE_Pf)
