@@ -11,6 +11,7 @@ struct GridapParameters
     Ω               # Whole mesh domain
     dΩ              # Numerical integration for whole mesh domain
     dΩ_d            # Numerical integration for design domain
+    dΩ_r            # Numerical integration for raman domain
     dΓ_d            # Numerical integration for design boundary
     dΓ_t            # Numerical integration for target boudary
     dΓ_s            # Numerical integration for source boundary
@@ -20,7 +21,7 @@ struct GridapParameters
 end
 
 
-function GridapFE(meshfile, order, degree, diritags, neumanntags, targettags, sourcetags, flag_f = true)
+function GridapFE(meshfile, order, degree, diritags, neumanntags, targettags, sourcetags, flag_f = true, ramantag=false)
     model = GmshDiscreteModel(meshfile)
 
     # Test and trial finite element function space
@@ -74,6 +75,16 @@ function GridapFE(meshfile, order, degree, diritags, neumanntags, targettags, so
     Γ_s = BoundaryTriangulation(model; tags = sourcetags)
     dΓ_s = Measure(Γ_s, degree)
 
-    gridap = GridapParameters(FE_V,FE_U,FE_Q,FE_P,FE_Qf,FE_Pf,np,Ω,dΩ,dΩ_d,dΓ_d,dΓ_t,dΓ_s,nb,tags,design_tag)
+    # Raman tags
+    if ramantag
+        raman_tag = get_tag_from_name(labels, "Raman")
+        cellmask_r = get_face_mask(labels, "Raman", dimension)
+
+        Ω_r = Triangulation(model, cellmask_r)
+        dΩ_r = Measure(Ω_r, degree)
+    else
+        dΩ_r = dΩ_d
+    end
+    gridap = GridapParameters(FE_V,FE_U,FE_Q,FE_P,FE_Qf,FE_Pf,np,Ω,dΩ,dΩ_d,dΩ_r,dΓ_d,dΓ_t,dΓ_s,nb,tags,design_tag)
     return gridap
 end

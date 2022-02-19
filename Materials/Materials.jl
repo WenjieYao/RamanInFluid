@@ -28,13 +28,19 @@ axislegend(ax, [lin1, lin2], ["Real", "Imag"], position = :rt,
 scene
 
 """
-function RefractiveIndex(material, main_path)
+function RefractiveIndex(material, main_path, reverse=false)
     filename = main_path*"Materials/"*material*".txt"
     RawData = (open(readdlm, filename))
 
-    λ_raw = RawData[2:end,1] * 1e3
-    n_raw = RawData[2:end,2]
-    k_raw = RawData[2:end,3]
+    if !reverse
+        λ_raw = RawData[2:end,1] * 1e3
+        n_raw = RawData[2:end,2]
+        k_raw = RawData[2:end,3]
+    else
+        λ_raw = RawData[end:-1:2,1] * 1e3
+        n_raw = RawData[end:-1:2,2]
+        k_raw = RawData[end:-1:2,3]
+    end
 
     knots = (λ_raw,)
     itpr = Interpolations.interpolate(knots, n_raw, Gridded(Linear()))

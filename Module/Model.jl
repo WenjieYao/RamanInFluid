@@ -70,9 +70,9 @@ end
 
 function fr(x, hr, hd)
     if x[2] > hd && x[2] < hr + hd
-        return 1
+        return 1.0#exp(1-1/(1-((x[2]-hd)/hr)^2))
     else
-        return 0
+        return 0.0
     end
 end
 
@@ -80,12 +80,20 @@ function MatrixB(pth, uh; control, gridap)
     if control.Bp
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
             ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d + 
+            # ∫(conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh))))gridap.dΩ_r
             ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
             ∫((x->GaussianD(x, hrd, [2,2]))* (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
         end
+    end
+    return B_mat
+end
+
+function MatrixB0(n,lambda, uh; control, gridap)
+    B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
+        ∫((x->fr(x, control.hrd[2]+(n-1)*lambda/2, control.hrd[2]+n*lambda/2)) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
     end
     return B_mat
 end
