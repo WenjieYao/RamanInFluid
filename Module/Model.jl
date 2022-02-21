@@ -70,7 +70,7 @@ end
 
 function fr(x, hr, hd)
     if x[2] > hd && x[2] < hr + hd
-        return exp(-(x[2]-hd)/100)#1.0#exp(1-1/(1-((x[2]-hd)/hr)^2))
+        return exp(1-1/(1-((x[2]-hd)/hr)^2))
     else
         return 0.0
     end
