@@ -5,7 +5,9 @@ using LinearAlgebra, SparseArrays, KrylovKit
 using ChainRulesCore, Zygote
 using PartitionedArrays
 using NLopt
+using FileIO
 
+import Images: Gray
 import Gridap.CellData: Interpolable
 import ChainRulesCore: rrule
 import Gmsh: gmsh
@@ -13,30 +15,29 @@ import Gmsh: gmsh
 
 main_path = "/home/gridsan/wyao/Research/RamanInFluid/"
 include(main_path*"Materials/Materials.jl")
-include(main_path*"Module/Mesh_Periodic.jl")
+include(main_path*"Module/Mesh_RecCir.jl")
 include(main_path*"Module/Helper.jl")
 include(main_path*"Module/GridapFE.jl")
 include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
+include(main_path*"Module/Objective_single.jl")
 
-# Geometry parameters of the mesh
-L = 150           # Length of the normal region  
-hair = 500        # Height of the air region
-hs = 300          # Height of the source location in air
-ht = 200          # Height of the target location in air
-hd = 200          # Height of design domain
-hsub = 100        # Height of substrate domain below design domain
-dpml = 100        # Thickness of the PML
+L = 600
+h1 = 600
+h2 = 200
+rd = 100
+rs = 10
+rt = 150
+dpml = 300
 
-# Characteristic length (controls the resolution, smaller the finer)
-resol = 75        # Number of points per wavelength
-l1 = L/resol      # Air
-l2 = l1/2.0       # Design domain
-l3 = l1*2           # PML
+res = 150
+l1 = L/res
+l2 = l1/2
 
+hrd = [0, h1/2]
 meshfile = "geometry.msh"
-geo_param = PeriodicGeometry(L, hair, hs, ht, hd, hsub, dpml, l1, l2, l3)
+geo_param = RecCirGeometry(L, h1, h2, rt, rd, rs, dpml, l1, l2)
 MeshGenerator(geo_param, meshfile)
 
 ############  Optimization parameters #############
@@ -60,7 +61,7 @@ Amp = 1
 nkx = 30
 nparts = nkx / 2
 
-Bp = true          # Matrix B depend on parameters?
+Bp = false          # Matrix B depend on parameters?
 pv = 1
 
 # Foundary constraint parameters
@@ -70,47 +71,65 @@ ls = r[1]
 ηe = fηe(lw / r[1])
 ηd = fηd(lw / r[1])
 
-control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd)
+
+control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
 
 gridap = GridapFE(meshfile, 1, 2, ["DirichletEdges", "DirichletNodes"], ["DesignNodes", "DesignEdges"], ["Target"], ["Source"], flag_f)
 
-material = "Silver"
-n_λ, k_λ = RefractiveIndex(material, main_path)
+
+material = "Ag"
+n_λ, k_λ = RefractiveIndex(material,main_path,true)
 λ1 = 532
-λ2 = 549
+λ2 = 548
 nm1 = n_λ(λ1) + 1im * k_λ(λ1)
 nm2 = n_λ(λ2) + 1im * k_λ(λ2)
-nf = sqrt(1.77)
+nf = 1
 μ = 1
 R = 1e-10
-LHp=[Inf, hair + hd]  # Start of PML for x,y > 0
-LHn=[Inf, hsub]       # Start of PML for x,y < 0
+LHp=[L/2, h1+h2]   # Start of PML for x,y > 0
+LHn=[L/2, 0.1]       # Start of PML for x,y < 0
 
 
 ω1 = 2 * π / λ1
-phys1 = PhysicalParameters(ω1, nf, nm1, nm1, μ, R, dpml, LHp, LHn, hd)
+phys1 = PhysicalParameters(ω1, nf, nm1, nf, μ, R, dpml, LHp, LHn, 0)
 ω2 = 2 * π / λ2
-phys2 = PhysicalParameters(ω2, nf, nm2, nm2, μ, R, dpml, LHp, LHn, hd)
+phys2 = PhysicalParameters(ω2, nf, nm2, nf, μ, R, dpml, LHp, LHn, 0)
 
-p_init_fun(x) = x[2] < 1 * hd ? 1 : 0
-lc_temp(v) = ∫(v * x->p_init_fun(x))gridap.dΩ
-pc_vec = assemble_vector(lc_temp, gridap.FE_P)
+
+# specify the path to your local image file
+img_path = main_path*"Initial/Rasmus_Raman.png"
+img = load(img_path)
+data = 1.0 .-Float64.(Gray.(img))
+function image_to_function(x, data, Lx, Ly)
+    Nx, Ny = size(data)
+    xi = Int(round((x[1]/Lx + 0.5) * Nx))
+    yi = Ny-Int(round(((x[2]-h1/2)/Ly + 0.5) * Ny))
+    if xi > 0 && xi <= Nx && yi > 0 && yi <= Ny
+        return data[xi,yi]
+    else
+        return 0.0
+    end
+end
+
+binit(v) = ∫(v * x->image_to_function(x, data, 280, 280))gridap.dΩ
+pc_vec = assemble_vector(binit, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
-p_init[p_init .> 0] .= 0.5
+p_init[p_init .< 0.5] .= 0
+p_init[p_init .> 0.5] .= 1
 
-β_list = [5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 80.0, 80.0, 80.0]
+β_list = [5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 80.0, 80.0]
 # β_list = [80.0, 80.0, 80.0, 80.0, 80.0]
 
 g_opt = 0
-for bi = 7 : 10
+for bi = 1 : 9
     β = β_list[bi]
-    control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd)
+    control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
 
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 200; phys1, phys2, control, gridap)
+        g_opt, p_opt = gs_p_optimize(p_init, 1e-12, 200; phys1, phys2, control, gridap)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 200; phys1, phys2, control, gridap)
+        g_opt, p_opt = gs_p_optimize([], 1e-12, 200; phys1, phys2, control, gridap)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)

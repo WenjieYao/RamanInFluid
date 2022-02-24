@@ -70,7 +70,7 @@ end
 
 function fr(x, hr, hd)
     if x[2] > hd && x[2] < hr + hd
-        return exp(1-1/(1-((x[2]-hd)/hr)^2))
+        return 1.0#exp(1-1/(1-((x[2]-hd)/hr)^2))
     else
         return 0.0
     end
@@ -80,8 +80,7 @@ function MatrixB(pth, uh; control, gridap)
     if control.Bp
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
             ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d + 
-            # ∫(conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh))))gridap.dΩ_r
-            ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
+            ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_r
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
@@ -91,9 +90,10 @@ function MatrixB(pth, uh; control, gridap)
     return B_mat
 end
 
-function MatrixB0(lambda, uh; control, gridap)
+function MatrixB0(pth, hr, uh; control, gridap)
     B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-        ∫((x->fr(x, lambda/2, control.hrd[1]+control.hrd[2]-lambda/2)) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
+        ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d +
+        ∫((x->fr(x, hr, control.hrd[1]+control.hrd[2]-hr)) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_r
     end
     return B_mat
 end
