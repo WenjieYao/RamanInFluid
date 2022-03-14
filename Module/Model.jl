@@ -92,7 +92,7 @@ end
 
 function MatrixB0(pth, hr, uh; control, gridap)
     B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-        ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d +
+        # ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_d +
         ∫((x->fr(x, hr, control.hrd[1]+control.hrd[2]-hr)) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ_r
     end
     return B_mat
