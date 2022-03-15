@@ -10,7 +10,6 @@ import Gridap.CellData: Interpolable
 import ChainRulesCore: rrule
 import Gmsh: gmsh
 
-
 main_path = "/home/gridsan/wyao/Research/RamanInFluid/"
 include(main_path*"Materials/Materials.jl")
 include(main_path*"Module/Mesh_Periodic.jl")
@@ -20,24 +19,47 @@ include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
+init_L = 300
+init_h = 100
+
+material = "Silver"
+n_λ, k_λ = RefractiveIndex(material,main_path)
+λ1 = 532
+λ2 = 549
+nm1 = n_λ(λ1) + 1im * k_λ(λ1)
+nm2 = n_λ(λ2) + 1im * k_λ(λ2)
+nf = sqrt(1.77)
+μ = 1
+R = 1e-10
+
+hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 150           # Length of the normal region  
-hair = 500        # Height of the air region
-hs = 300          # Height of the source location in air
-ht = 200          # Height of the target location in air
+L = 150           # Length of the normal region
+hair = 500 + hr       # Height of the air region
+hs = 300 + hr         # Height of the source location in air
+ht = 200 + hr         # Height of the target location in air
 hd = 200          # Height of design domain
 hsub = 100        # Height of substrate domain below design domain
-dpml = 100        # Thickness of the PML
-
+dpml = 300        # Thickness of the PML
+hrd = [hd, hr]
 # Characteristic length (controls the resolution, smaller the finer)
-resol = 75        # Number of points per wavelength
+resol = 20        # Number of points per wavelength
 l1 = L/resol      # Air
-l2 = l1/2.0       # Design domain
-l3 = l1*2           # PML
+l2 = l1/10.0       # Design domain
+l3 = l1           # PML
 
 meshfile = "geometry.msh"
 geo_param = PeriodicGeometry(L, hair, hs, ht, hd, hsub, dpml, l1, l2, l3)
 MeshGenerator(geo_param, meshfile)
+
+LHp=[Inf, hair + hd]  # Start of PML for x,y > 0
+LHn=[Inf, hsub]       # Start of PML for x,y < 0
+
+
+ω1 = 2 * π / λ1
+phys1 = PhysicalParameters(ω1, nf, nm1, nm1, μ, R, dpml, LHp, LHn, hd)
+ω2 = 2 * π / λ2
+phys2 = PhysicalParameters(ω2, nf, nm2, nm2, μ, R, dpml, LHp, LHn, hd)
 
 ############  Optimization parameters #############
 flag_f = true       # Turn on filter
@@ -48,7 +70,7 @@ r = [0.02 * L, 0.02 * L]  # Filter radius
 β = 80.0                  # β∈[1,∞], threshold sharpness
 η = 0.5                   # η∈[0,1], threshold center
 
-α = 0.0 / (2 * 1000.0)    # Equivalent loss α = 1/2Q
+α = 1.0 / (2 * 1000.0)    # Equivalent loss α = 1/2Q
 
 # Number of subspace
 K = 20
@@ -70,41 +92,35 @@ ls = r[1]
 ηe = fηe(lw / r[1])
 ηd = fηd(lw / r[1])
 
-control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd)
+control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
 
-gridap = GridapFE(meshfile, 1, 2, ["DirichletEdges", "DirichletNodes"], ["DesignNodes", "DesignEdges"], ["Target"], ["Source"], flag_f)
+gridap = GridapFE(meshfile, 1, 2, ["DirichletEdges", "DirichletNodes"], ["DesignNodes", "DesignEdges"], ["Target"], ["Source"], flag_f, true)
 
-material = "Silver"
-n_λ, k_λ = RefractiveIndex(material, main_path)
-λ1 = 532
-λ2 = 549
-nm1 = n_λ(λ1) + 1im * k_λ(λ1)
-nm2 = n_λ(λ2) + 1im * k_λ(λ2)
-nf = sqrt(1.77)
-μ = 1
-R = 1e-10
-LHp=[Inf, hair + hd]  # Start of PML for x,y > 0
-LHn=[Inf, hsub]       # Start of PML for x,y < 0
+function p_triangle(x, h, L)
+    dx = abs(x[1])
+    dy = x[2]
+    inner = 0
+    if dy <= (1-2*dx/L)*h
+        inner = 1
+    end
+    return inner
+end
 
-
-ω1 = 2 * π / λ1
-phys1 = PhysicalParameters(ω1, nf, nm1, nm1, μ, R, dpml, LHp, LHn, hd)
-ω2 = 2 * π / λ2
-phys2 = PhysicalParameters(ω2, nf, nm2, nm2, μ, R, dpml, LHp, LHn, hd)
-
-p_init_fun(x) = x[2] < 0.2 * hd ? 1 : 0
-lc_temp(v) = ∫(v * x->p_init_fun(x))gridap.dΩ
-pc_vec = assemble_vector(lc_temp, gridap.FE_P)
+kb = 0
+binitialfunc(v) = ∫(v * x->p_triangle(x, init_h, init_L))gridap.dΩ
+pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
-p_init[p_init .> 0] .= 0.5
+p_init[p_init .< 0.1] .= 0
+p_init[p_init .> 0.1] .= 1
 
 β_list = [5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 80.0, 80.0, 80.0]
-# β_list = [80.0, 80.0, 80.0, 80.0, 80.0]
+Q_list = [10.0, 20.0, 40.0, 80.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0, 1000.0]
 
 g_opt = 0
-for bi = 7 : 10
+for bi = 1 : 10
     β = β_list[bi]
-    control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd)
+    α = 1/(2*Q_list[bi])
+    control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
 
     if bi == 1
         g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 200; phys1, phys2, control, gridap)

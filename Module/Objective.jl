@@ -41,9 +41,9 @@ end
 
 Dptdpf(pf; control) = control.flag_t ? control.β * (1.0 - tanh(control.β * (pf - control.η))^2) / (tanh(control.β * control.η) + tanh(control.β * (1.0 - control.η))) : 1.0
 
-Dξdpf(pf, nf, nm, α)= 2 * (nf - nm) / (nf + (nm - nf) * Threshold(pf; control))^3 / (1 + control.α * 1im) * Dptdpf(pf; control)
+Dξdpf(pf, nf, nm, control)= 2 * (nf - nm) / (nf + (nm - nf) * Threshold(pf; control))^3 / (1 + control.α * 1im) * Dptdpf(pf; control)
 
-DAdpf(u, v, pfh, kb; phys, control) = ((p -> Dξdpf(p, phys.nf, phys.nm, control.α)) ∘ pfh) * ((∇(v) - 1im * kb * v) ⊙ (∇(u) + 1im * kb * u))
+DAdpf(u, v, pfh, kb; phys, control) = ((p -> Dξdpf(p, phys.nf, phys.nm, control)) ∘ pfh) * ((∇(v) - 1im * kb * v) ⊙ (∇(u) + 1im * kb * u))
 
 function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
