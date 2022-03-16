@@ -7,8 +7,8 @@ struct PhysicalParameters
     μ::Float64                   # Magnetic permeability
     R::Float64                   # Reflection of PML
     dpml::Float64                # Thickness of PML
-    LHp::Vector{Float64}         # Start of PML for x, y > 0
-    LHn::Vector{Float64}         # Start of PML for x, y < 0
+    LHp::NTuple{2, Float64}      # Start of PML for x, y > 0
+    LHn::NTuple{2, Float64}      # Start of PML for x, y < 0
     hd::Float64                  # Height of the design region
 end
 
@@ -17,7 +17,7 @@ function s_PML(x; phys)
     σ1 = -3 / 4 * log(phys.R) / phys.dpml
     σ2 = -3 / 4 * log(phys.R) / phys.dpml / max(real(phys.ns), 1e-2)
     σ = x[2]>0 ? σ1 : σ2
-    xf = [x[1], x[2]]
+    xf = (x[1], x[2])
     u = @. ifelse(xf > 0 , xf - phys.LHp, - xf - phys.LHn)
     return @. ifelse(u > 0,  1 + (1im * σ / phys.ω) * (u / phys.dpml)^2, $(1.0+0im))
 end
@@ -26,7 +26,7 @@ function ds_PML(x; phys)
     σ1 = -3 / 4 * log(phys.R) / phys.dpml
     σ2 = -3 / 4 * log(phys.R) / phys.dpml / max(real(phys.ns), 1e-2)
     σ = x[2]>0 ? σ1 : σ2
-    xf = [x[1], x[2]]
+    xf = (x[1], x[2])
     u = @. ifelse(xf > 0 , xf - phys.LHp, - xf - phys.LHn)
     ds = @. ifelse(u > 0, (2im * σ / phys.ω) * (1 / phys.dpml)^2 * u, $(0.0+0im))
     return ds.*sign.(xf)

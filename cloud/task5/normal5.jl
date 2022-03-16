@@ -19,8 +19,8 @@ include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
-init_L = 300
-init_h = 100
+init_ratio = 1
+init_value = 0.6
 
 material = "Silver"
 n_λ, k_λ = RefractiveIndex(material,main_path)
@@ -41,7 +41,7 @@ ht = 200 + hr         # Height of the target location in air
 hd = 200          # Height of design domain
 hsub = 100        # Height of substrate domain below design domain
 dpml = 300        # Thickness of the PML
-hrd = [hd, hr]
+hrd = (hd, hr)
 # Characteristic length (controls the resolution, smaller the finer)
 resol = 20        # Number of points per wavelength
 l1 = L/resol      # Air
@@ -52,8 +52,8 @@ meshfile = "geometry.msh"
 geo_param = PeriodicGeometry(L, hair, hs, ht, hd, hsub, dpml, l1, l2, l3)
 MeshGenerator(geo_param, meshfile)
 
-LHp=[Inf, hair + hd]  # Start of PML for x,y > 0
-LHn=[Inf, hsub]       # Start of PML for x,y < 0
+LHp=(Inf, hair + hd)  # Start of PML for x,y > 0
+LHn=(Inf, hsub)       # Start of PML for x,y < 0
 
 
 ω1 = 2 * π / λ1
@@ -66,7 +66,7 @@ flag_f = true       # Turn on filter
 flag_t = true       # Turn on threshold
 
 # Filter and threshold paramters
-r = [0.02 * L, 0.02 * L]  # Filter radius
+r = (0.02 * L, 0.02 * L)  # Filter radius
 β = 80.0                  # β∈[1,∞], threshold sharpness
 η = 0.5                   # η∈[0,1], threshold center
 
@@ -107,11 +107,14 @@ function p_triangle(x, h, L)
 end
 
 kb = 0
-binitialfunc(v) = ∫(v * x->p_triangle(x, init_h, init_L))gridap.dΩ
+p_trunc(x, ratio) = x[2] < (ratio * hd) ? 1 : 0
+binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
+# binitialfunc(v) = ∫(v * x->p_bowtie(x, 20, 80, L, hd))gridap.dΩ
+# binitialfunc(v) = ∫(v * x->p_triangle(x, 200, L))gridap.dΩ
 pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0
-p_init[p_init .> 0.1] .= 1
+p_init[p_init .> 0.1] .= init_value
 
 β_list = [5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 80.0, 80.0, 80.0]
 Q_list = [10.0, 20.0, 40.0, 80.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0, 1000.0]

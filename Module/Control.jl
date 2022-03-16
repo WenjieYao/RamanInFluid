@@ -4,7 +4,7 @@ This file contains filter, threshold, volume constraint and foundary contraint f
 struct ControllingParameters
     flag_f::Bool             # Enable filter
     flag_t::Bool             # Enable threshold
-    r::Vector{Float64}       # r = [rx, ry] filter radius
+    r::NTuple{2, Float64}    # r = (rx, ry) filter radius
     β::Float64               # Threshold steepness
     η::Float64               # Threshold value
     α::Float64               # Equivalent loss term
@@ -17,7 +17,7 @@ struct ControllingParameters
     c::Float64               # Foundary constraint parameter
     ηe::Float64              # Foundary constraint parameter
     ηd::Float64              # Foundary constraint parameter
-    hrd::Vector{Float64}     # Height of Raman region
+    hrd::NTuple{2, Float64}  # Height of Raman region
 end
 # pf_vec = Filter(p_vec)
 #a_f(r,u,v) = ∇(v)⊙(TensorValue(r[1]^2,0,0,r[2]^2)⋅∇(u))+v⊙u
