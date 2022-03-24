@@ -34,7 +34,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 300           # Length of the normal region
+L = 450           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
@@ -66,7 +66,7 @@ flag_f = true       # Turn on filter
 flag_t = true       # Turn on threshold
 
 # Filter and threshold paramters
-r = (0.02 * L, 0.02 * L)  # Filter radius
+r = (5, 5)  # Filter radius
 β = 80.0                  # β∈[1,∞], threshold sharpness
 η = 0.5                   # η∈[0,1], threshold center
 
