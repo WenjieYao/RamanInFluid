@@ -7,7 +7,7 @@ function gs_pf(pf_vec; kb, phys1, phys2, control, gridap)
     u1_vec = A1_mat\b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
-    braman(v) = ∫((x->GaussianD(x, [0,300], [2,2]))*(∇(v) ⋅ ∇(u1h)))gridap.dΩ
+    braman(v) = ∫((x->GaussianD(x, [0,300], [1,1]))*(∇(v) ⋅ ∇(u1h)))gridap.dΩ
     b_raman = assemble_vector(braman, gridap.FE_V)
     A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
     v2_vec = A2_mat\b_raman
@@ -36,7 +36,7 @@ function Dgsdpf(pf_vec; kb, phys1, phys2, control, gridap)
     u1_vec = A1_mat \ b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
-    braman(v) = ∫((x->GaussianD(x, control.hrd, [2,2]))*(∇(v) ⋅ ∇(u1h)))gridap.dΩ
+    braman(v) = ∫((x->GaussianD(x, control.hrd, [1,1]))*(∇(v) ⋅ ∇(u1h)))gridap.dΩ
     b_raman = assemble_vector(braman, gridap.FE_V)
     A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
     v2_vec = A2_mat \ b_raman
@@ -50,7 +50,7 @@ function Dgsdpf(pf_vec; kb, phys1, phys2, control, gridap)
     w2conjh = FEFunction(gridap.FE_U, conj(w2_vec)) 
     w2h = FEFunction(gridap.FE_U, (w2_vec)) 
     
-    b1raman(v) = ∫((x->GaussianD(x, [0,300], [2,2]))*(∇(v) ⋅ ∇(w2h)))gridap.dΩ
+    b1raman(v) = ∫((x->GaussianD(x, [0,300], [1,1]))*(∇(v) ⋅ ∇(w2h)))gridap.dΩ
     b1_raman = assemble_vector(b1raman, gridap.FE_V)
     w1_vec = A1_mat' \ b1_raman
     w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
@@ -112,7 +112,7 @@ end
 function MatrixOf(gridap)
     # Assemble the matrix
     return assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-        ∫( (x->GaussianD(x, [0,300], [2,2])) * u * v )gridap.dΩ
+        ∫( (x->GaussianD(x, [0,300], [1,1])) * u * v )gridap.dΩ
     end
 end
 
