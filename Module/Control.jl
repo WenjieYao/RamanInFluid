@@ -108,3 +108,24 @@ function LWConstraint(pW::Vector, grad::Vector; control, gridap)
     
     sum(∫(ph * ((g -> fg(g, control.c)) ∘ ∇(pfh)) * ((ph -> gc_LW(ph, control.ηe)) ∘ pfh))gridap.dΩ_d)
 end
+
+function LSConstraint(pW::Vector, grad::Vector; control, gridap)
+    p0 = pW[1 : gridap.np]
+    pf_vec = pf_p0(p0; control, gridap)
+    pfh = FEFunction(gridap.FE_Pf, pf_vec)
+    ph = (pf -> Threshold(pf; control)) ∘ pfh
+    if length(grad) > 0
+        # grad[gridap.np + 1 : end] = zeros(length(pW) - gridap.np)
+        l_temp(v) = ∫(v * ((ph -> gc_LS(ph, control.ηd)) ∘ pfh) 
+                    * ((g -> fg(g, control.c)) ∘ ∇(pfh)) 
+                    * (-((pf -> Dptdpf(pf; control)) ∘ pfh) 
+                    + 2 * (1-ph) / (pfh - control.ηd)) 
+                    - 2 * control.c * (1-ph) * ((ph -> gc_LS(ph, control.ηd)) ∘ pfh) 
+                    * ((g -> fg(g, control.c)) ∘ ∇(pfh)) * (∇(v) ⋅ ∇(pfh)))gridap.dΩ_d
+        grad0 = assemble_vector(l_temp, gridap.FE_Pf)
+        grad[1 : gridap.np] = Dgdp(grad0; control, gridap)
+    end
+    
+    
+    sum(∫((1-ph) * ((g -> fg(g, control.c)) ∘ ∇(pfh)) * ((ph -> gc_LS(ph, control.ηd)) ∘ pfh))gridap.dΩ_d)
+end

@@ -36,7 +36,7 @@ function Dgsdpf(pf_vec; kb, phys1, phys2, control, gridap)
     u1_vec = A1_mat \ b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
-    braman(v) = ∫((x->GaussianD(x, control.hrd, [1,1]))*(∇(v) ⋅ ∇(u1h)))gridap.dΩ
+    braman(v) = ∫((x->GaussianD(x, [0,300], [1,1]))*(∇(v) ⋅ ∇(u1h)))gridap.dΩ
     b_raman = assemble_vector(braman, gridap.FE_V)
     A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
     v2_vec = A2_mat \ b_raman
@@ -99,7 +99,7 @@ function gs_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, phys2, control
         inequality_constraint!(opt, (x, g) -> VolumeConstraint(x, g; control, gridap), 1e-2)
     end
     if control.c > 0
-        inequality_constraint!(opt, (x, g) -> LWConstraint(x, g; control, gridap), 0.1)
+        inequality_constraint!(opt, (x, g) -> LSConstraint(x, g; control, gridap), 1)
     end
 
     (g_opt, p_opt, ret) = optimize(opt, p_initial)
@@ -199,7 +199,7 @@ function gf_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, control, grida
         inequality_constraint!(opt, (x, g) -> VolumeConstraint(x, g; control, gridap), 1e-2)
     end
     if control.c > 0
-        inequality_constraint!(opt, (x, g) -> LWConstraint(x, g; control, gridap), 0.1)
+        inequality_constraint!(opt, (x, g) -> LSConstraint(x, g; control, gridap), 1)
     end
 
     (g_opt, p_opt, ret) = optimize(opt, p_initial)
