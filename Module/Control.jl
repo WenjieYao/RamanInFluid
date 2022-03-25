@@ -68,7 +68,7 @@ function fηe(x)
     if (x >= 0) && (x <= 1)
         return  0.25 * x^2 + 0.5
     elseif (x > 1) && (x <= 2)
-        return -0.25 * x^2 + 1.0
+        return -0.25 * x^2 + x
     else
         return 1.0
     end
@@ -94,7 +94,7 @@ function LWConstraint(pW::Vector, grad::Vector; control, gridap)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     ph = (pf -> Threshold(pf; control)) ∘ pfh
     if length(grad) > 0
-        grad[gridap.np + 1 : end] = zeros(length(pW) - gridap.np)
+        # grad[gridap.np + 1 : end] = zeros(length(pW) - gridap.np)
         l_temp(v) = ∫(v * ((ph -> gc_LW(ph, control.ηe)) ∘ pfh) 
                     * ((g -> fg(g, control.c)) ∘ ∇(pfh)) 
                     * (((pf -> Dptdpf(pf; control)) ∘ pfh) 

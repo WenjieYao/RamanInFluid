@@ -19,7 +19,7 @@ include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
-init_ratio = 1
+init_ratio = 1.0
 init_value = 0.6
 
 material = "Silver"
@@ -34,7 +34,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 450           # Length of the normal region
+L = 150           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
@@ -76,7 +76,7 @@ r = (5, 5)  # Filter radius
 K = 20
 
 # Amplify g for NLopt
-Amp = 1
+Amp = 1e-5
 
 # Sum over kx
 nkx = 30
@@ -86,8 +86,8 @@ Bp = true          # Matrix B depend on parameters?
 pv = 1
 
 # Foundary constraint parameters
-c = 0#resol^4
-lw = r[1]
+c = (r[1])^4
+lw = 10
 ls = r[1]
 ηe = fηe(lw / r[1])
 ηd = fηd(lw / r[1])
