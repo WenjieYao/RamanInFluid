@@ -106,7 +106,7 @@ function LWConstraint(pW::Vector, grad::Vector; control, gridap)
     end
     
     
-    sum(∫(ph * ((g -> fg(g, control.c)) ∘ ∇(pfh)) * ((ph -> gc_LW(ph, control.ηe)) ∘ pfh))gridap.dΩ_d)
+    sum(∫(ph * ((g -> fg(g, control.c)) ∘ ∇(pfh)) * ((ph -> gc_LW(ph, control.ηe)) ∘ pfh))gridap.dΩ_d)-5
 end
 
 function LSConstraint(pW::Vector, grad::Vector; control, gridap)
@@ -127,5 +127,5 @@ function LSConstraint(pW::Vector, grad::Vector; control, gridap)
     end
     
     
-    sum(∫((1-ph) * ((g -> fg(g, control.c)) ∘ ∇(pfh)) * ((ph -> gc_LS(ph, control.ηd)) ∘ pfh))gridap.dΩ_d)
+    sum(∫((1-ph) * ((g -> fg(g, control.c)) ∘ ∇(pfh)) * ((ph -> gc_LS(ph, control.ηd)) ∘ pfh))gridap.dΩ_d)-5
 end
