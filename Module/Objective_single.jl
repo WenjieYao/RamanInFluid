@@ -100,6 +100,7 @@ function gs_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, phys2, control
     end
     if control.c > 0
         inequality_constraint!(opt, (x, g) -> LSConstraint(x, g; control, gridap), 1e-2)
+        inequality_constraint!(opt, (x, g) -> LWConstraint(x, g; control, gridap), 1e-2)
     end
 
     (g_opt, p_opt, ret) = optimize(opt, p_initial)
@@ -200,6 +201,7 @@ function gf_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, control, grida
     end
     if control.c > 0
         inequality_constraint!(opt, (x, g) -> LSConstraint(x, g; control, gridap), 1e-2)
+        inequality_constraint!(opt, (x, g) -> LWConstraint(x, g; control, gridap), 1e-2)
     end
 
     (g_opt, p_opt, ret) = optimize(opt, p_initial)

@@ -44,8 +44,8 @@ dpml = 300        # Thickness of the PML
 hrd = (hd, hr)
 # Characteristic length (controls the resolution, smaller the finer)
 resol = 20        # Number of points per wavelength
-l1 = L/resol      # Air
-l2 = l1/10.0       # Design domain
+l1 = 20      # Air
+l2 = 1       # Design domain
 l3 = l1           # PML
 
 meshfile = "geometry.msh"
@@ -67,7 +67,7 @@ flag_t = true       # Turn on threshold
 
 # Filter and threshold paramters
 r = (5, 5)  # Filter radius
-β = 80.0                  # β∈[1,∞], threshold sharpness
+β = 32.0                  # β∈[1,∞], threshold sharpness
 η = 0.5                   # η∈[0,1], threshold center
 
 α = 1.0 / (2 * 1000.0)    # Equivalent loss α = 1/2Q
@@ -88,7 +88,7 @@ pv = 1
 # Foundary constraint parameters
 c = (r[1])^4
 lw = 10
-ls = r[1]
+ls = 10
 ηe = fηe(lw / r[1])
 ηd = fηd(lw / r[1])
 
@@ -116,20 +116,26 @@ p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0
 p_init[p_init .> 0.1] .= init_value
 
-β_list = [5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 80.0, 80.0, 80.0]
-Q_list = [10.0, 20.0, 40.0, 80.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0, 1000.0]
+β_list = [8.0, 8.0, 16.0, 16.0, 32.0, 32.0, 32.0]
+Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
 
 g_opt = 0
-for bi = 1 : 10
+for bi = 1 : 7
     β = β_list[bi]
     α = 1/(2*Q_list[bi])
-    control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
+    if bi < 5
+        c = 0
+        control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
+    else
+        c = (r[1])^4
+        control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
+    end
 
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 200; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 200; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)
