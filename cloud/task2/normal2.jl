@@ -21,9 +21,10 @@ include(main_path*"Module/Objective.jl")
 
 init_ratio = 0.8
 init_value = 1
+init_r = 7
 
-material = "Silver"
-n_λ, k_λ = RefractiveIndex(material,main_path)
+material = "Ag"
+n_λ, k_λ = RefractiveIndex(material,main_path,true)
 λ1 = 532
 λ2 = 549
 nm1 = n_λ(λ1) + 1im * k_λ(λ1)
@@ -66,7 +67,7 @@ flag_f = true       # Turn on filter
 flag_t = true       # Turn on threshold
 
 # Filter and threshold paramters
-r = (5, 5)  # Filter radius
+r = (init_r, init_r)  # Filter radius
 β = 32.0                  # β∈[1,∞], threshold sharpness
 η = 0.5                   # η∈[0,1], threshold center
 
@@ -87,10 +88,10 @@ pv = 1
 
 # Foundary constraint parameters
 c = (r[1])^4
-lw = 10
-ls = 10
-ηe = fηe(lw / r[1])
-ηd = fηd(lw / r[1])
+lw = r[1]
+ls = r[1]
+ηe = 0.75#fηe(lw / r[1])
+ηd = 0.25#fηd(lw / r[1])
 
 control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
 
@@ -135,7 +136,7 @@ for bi = 1 : 7
         g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
     
     else
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)
