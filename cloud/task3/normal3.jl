@@ -21,7 +21,7 @@ include(main_path*"Module/Objective.jl")
 
 init_ratio = 0.2
 init_value = 1
-init_r = 7
+init_r = 6
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
