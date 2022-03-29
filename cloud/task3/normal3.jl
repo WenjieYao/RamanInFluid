@@ -19,7 +19,7 @@ include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
-init_ratio = 0.2
+init_ratio = 0.5
 init_value = 1
 init_r = 5
 
@@ -35,7 +35,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 100           # Length of the normal region
+L = 130           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
