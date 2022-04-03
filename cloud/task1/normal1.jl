@@ -19,9 +19,11 @@ include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
-init_ratio = 0.5
-init_value = 1
+init_ratio = 1.0
+init_value = 0.5
 init_r = 5
+usat = 1e4
+damp = 1e-2
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -35,7 +37,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 110           # Length of the normal region
+L = 400           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
@@ -124,7 +126,7 @@ g_opt = 0
 for bi = 1 : 7
     β = β_list[bi]
     α = 1/(2*Q_list[bi])
-    if bi < 5
+    if bi < 6
         c = 0
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
     else
@@ -133,10 +135,10 @@ for bi = 1 : 7
     end
 
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)
