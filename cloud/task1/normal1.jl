@@ -19,11 +19,11 @@ include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
-init_ratio = 1.0
+init_ratio = 0.5
 init_value = 0.5
 init_r = 5
-usat = 1e4
-damp = 1e-2
+usat = Inf
+damp = 1
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -111,9 +111,9 @@ end
 
 kb = 0
 p_trunc(x, ratio) = x[2] < (ratio * hd) ? 1 : 0
-binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
+# binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
 # binitialfunc(v) = ∫(v * x->p_bowtie(x, 20, 80, L, hd))gridap.dΩ
-# binitialfunc(v) = ∫(v * x->p_triangle(x, 200, L))gridap.dΩ
+binitialfunc(v) = ∫(v * x->p_triangle(x, ratio * hd, L))gridap.dΩ
 pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0
@@ -134,11 +134,17 @@ for bi = 1 : 7
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
     end
 
+    # if bi == 1
+    #     g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+    
+    # else
+    #     g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+    # end
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)

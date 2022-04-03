@@ -19,11 +19,11 @@ include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
-init_ratio = 0.5
-init_value = 1.0
+init_ratio = 0.3
+init_value = 0.5
 init_r = 5
-usat = 1e4
-damp = 1e-2
+usat = Inf
+damp = 1
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -134,11 +134,17 @@ for bi = 1 : 7
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
     end
 
+    # if bi == 1
+    #     g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+    
+    # else
+    #     g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+    # end
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)
