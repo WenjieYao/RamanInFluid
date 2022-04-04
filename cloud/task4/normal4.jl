@@ -20,10 +20,9 @@ include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
 init_ratio = 1.0
-init_value = 0.4
+init_value = 0.5
 init_r = 5
-usat = Inf
-damp = 1
+usat = 1e4
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -111,9 +110,9 @@ end
 
 kb = 0
 p_trunc(x, ratio) = x[2] < (ratio * hd) ? 1 : 0
-binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
+# binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
 # binitialfunc(v) = ∫(v * x->p_bowtie(x, 20, 80, L, hd))gridap.dΩ
-# binitialfunc(v) = ∫(v * x->p_triangle(x, 200, L))gridap.dΩ
+binitialfunc(v) = ∫(v * x->p_triangle(x, ratio * hd, L))gridap.dΩ
 pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0
@@ -121,11 +120,13 @@ p_init[p_init .> 0.1] .= init_value
 
 β_list = [8.0, 8.0, 16.0, 16.0, 32.0, 32.0, 32.0]
 Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
+d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]
 
 g_opt = 0
-for bi = 1 : 7
+for bi = 1 : 6
     β = β_list[bi]
     α = 1/(2*Q_list[bi])
+    damp = d_list[bi]
     if bi < 6
         c = 0
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
@@ -134,18 +135,18 @@ for bi = 1 : 7
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
     end
 
-    # if bi == 1
-    #     g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
-    
-    # else
-    #     g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
-    # end
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
     end
+    # if bi == 1
+    #     g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
+    
+    # else
+    #     g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap)
+    # end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)
     end
