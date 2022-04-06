@@ -20,7 +20,8 @@ include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
 init_ratio = 1.0
-init_value = 0.5
+init_ratioL = 0.5
+init_value = 1.0
 init_r = 5
 usat = 1e4
 
@@ -112,7 +113,7 @@ kb = 0
 p_trunc(x, ratio) = x[2] < (ratio * hd) ? 1 : 0
 # binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
 # binitialfunc(v) = ∫(v * x->p_bowtie(x, 20, 80, L, hd))gridap.dΩ
-binitialfunc(v) = ∫(v * x->p_triangle(x, ratio * hd, L))gridap.dΩ
+binitialfunc(v) = ∫(v * x->p_triangle(x, init_ratio * hd, init_ratioL * L))gridap.dΩ
 pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0

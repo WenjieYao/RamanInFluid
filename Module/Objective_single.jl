@@ -113,7 +113,8 @@ end
 function MatrixOf(gridap)
     # Assemble the matrix
     return assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-        ∫( (x->GaussianD(x, [0,300], [1,1])) * u * v )gridap.dΩ
+        # ∫( (x->GaussianD(x, [0,300], [1,1])) * u * v )gridap.dΩ
+        ∫( (x->GaussianD(x, [0,300], [1,1])) * (∇(u) ⋅ ∇(v)) )gridap.dΩ
     end
 end
 
