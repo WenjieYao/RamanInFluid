@@ -76,19 +76,20 @@ function fr(x, hr, hd)
     end
 end
 
-function SaturationFactor(uh, usat, damp = 1)
+function SaturationFactor(pth, uh, usat, damp = 1, e1 = 1, e2 = 1)
     if usat == Inf
         return 0.0
     else
-        return (x->(exp(damp*(abs2(x) - usat)))) ∘ uh
+        # return ((x->(exp(damp*(abs(∇(x) ⋅ ∇(x)))))) ∘ uh) * ((x->(exp(-damp*((e1 + (e2 - e1) * x)*usat)))) ∘ pth)
+        return exp∘(damp*(abs((conj(∇(uh)) ⋅ ∇(uh))/(e1 + (e2 - e1) * pth))-usat))
     end
 end
 
-function MatrixB(pth, uh; control, gridap, usat = Inf, damp = 1)
+function MatrixB(pth, uh; control, gridap, usat = Inf, damp = 1, e1 = 1, e2 = 1)
     if control.Bp
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-            ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))) / (1 + SaturationFactor(uh, usat, damp)))gridap.dΩ_d + 
-            ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))) / (1 + SaturationFactor(uh, usat, damp)))gridap.dΩ_r
+            ∫((1 - pth) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))) / (1 + SaturationFactor(pth, uh, usat, damp, e1, e2)))gridap.dΩ_d + 
+            ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))) / (1 + SaturationFactor(0, uh, usat, damp, e1, e2)))gridap.dΩ_r
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
