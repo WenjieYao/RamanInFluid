@@ -20,10 +20,10 @@ include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
 init_ratio = 1.0
-init_ratioL = 0.5
-init_value = 1.0
+init_ratioL = 1.0
+init_value = 0.5
 init_r = 5
-usat = 1e4
+usat = 50
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -111,9 +111,9 @@ end
 
 kb = 0
 p_trunc(x, ratio) = x[2] < (ratio * hd) ? 1 : 0
-# binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
+binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
 # binitialfunc(v) = ∫(v * x->p_bowtie(x, 20, 80, L, hd))gridap.dΩ
-binitialfunc(v) = ∫(v * x->p_triangle(x, init_ratio * hd, init_ratioL * L))gridap.dΩ
+# binitialfunc(v) = ∫(v * x->p_triangle(x, init_ratio * hd, init_ratioL * L))gridap.dΩ
 pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0
@@ -121,7 +121,7 @@ p_init[p_init .> 0.1] .= init_value
 
 β_list = [8.0, 8.0, 16.0, 16.0, 32.0, 32.0, 32.0]
 Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
-d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]
+d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e2
 
 g_opt = 0
 for bi = 1 : 6

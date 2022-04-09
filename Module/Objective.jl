@@ -46,9 +46,10 @@ Dξdpf(pf, nf, nm, control)= 2 * (nf - nm) / (nf + (nm - nf) * Threshold(pf; con
 DAdpf(u, v, pfh, kb; phys, control) = ((p -> Dξdpf(p, phys.nf, phys.nm, control)) ∘ pfh) * ((∇(v) - 1im * kb * v) ⊙ (∇(u) + 1im * kb * u))
 
 
-function SatTemp(pth, u1h, usat, damp, e1, e2)
+function SatTemp(temp_x, pth, damp, e1, e2)
     # return (x->(damp/(1+exp(damp *(abs2(x) - usat)))^2)) ∘ uh
-    return damp/(1+SaturationFactor(pth, u1h, usat, damp, e1, e2)) / (e1 + (e2 - e1) * pth) / (1+SaturationFactor(pth, u1h, usat, damp, e1, e2))
+    
+    return damp * (1 - 1 / (1+temp_x)) / (e1 + (e2 - e1) * pth) / (1+temp_x)
 end
 
 function MatrixdB1(pth, u1h, v2h; gridap, usat = Inf, damp=1, e1 = 1, e2 = 1)
@@ -58,9 +59,10 @@ function MatrixdB1(pth, u1h, v2h; gridap, usat = Inf, damp=1, e1 = 1, e2 = 1)
             ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(v2h)) * ((∇(u) ⋅ ∇(v2h)))))gridap.dΩ_r
         end
     else
+        temp_x = SaturationFactor(pth, u1h, usat, damp, e1, e2)
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-            ∫((1 - pth) * (conj(∇(v) ⋅ ∇(v2h)) * ((∇(u) ⋅ ∇(v2h)))) / (1 + SaturationFactor(pth, u1h, usat, damp, e1, e2)))gridap.dΩ_d - 
-            ∫((1 - pth) * (abs2(∇(u1h) ⋅ ∇(v2h))) * SatTemp(pth, u1h, usat, damp, e1, e2) * SaturationFactor(pth, u1h, usat, damp, e1, e2) * (∇(v) ⋅ ∇(u)))gridap.dΩ_d + 
+            ∫((1 - pth) * (conj(∇(v) ⋅ ∇(v2h)) * ((∇(u) ⋅ ∇(v2h)))) / (1 + temp_x))gridap.dΩ_d - 
+            ∫((1 - pth) * (abs2(∇(u1h) ⋅ ∇(v2h))) * SatTemp(temp_x, pth, damp, e1, e2) * (∇(v) ⋅ ∇(u)))gridap.dΩ_d + 
             ∫((x->fr(x, control.hrd[2], control.hrd[1])) * (conj(∇(v) ⋅ ∇(v2h)) * ((∇(u) ⋅ ∇(v2h)))) / (1 + SaturationFactor(0, u1h, usat, damp, e1, e2)))gridap.dΩ_r
         end
     end
@@ -69,10 +71,11 @@ end
 
 function pBdp(pth, u1h, v2h, usat, damp, e1, e2)
     if usat == Inf
-        return abs2(∇(v2h) ⋅ ∇(u1h))
+        return -abs2(∇(v2h) ⋅ ∇(u1h))
     else
-        part1 =  -abs2(∇(v2h) ⋅ ∇(u1h)) / (1 + SaturationFactor(pth, u1h, usat, damp, e1, e2))
-        part2 = (1 - pth) * abs2(∇(v2h) ⋅ ∇(u1h))  * SaturationFactor(pth, u1h, usat, damp, e1, e2) * SatTemp(pth, u1h, usat, damp, e1, e2) * (e2-e1) * abs(conj(∇(u1h)) ⋅ ∇(u1h)) / (e1 + (e2 - e1) * pth)
+        temp_x = SaturationFactor(pth, u1h, usat, damp, e1, e2)
+        part1 =  -abs2(∇(v2h) ⋅ ∇(u1h)) / (1 + temp_x)
+        part2 = (1 - pth) * abs2(∇(v2h) ⋅ ∇(u1h))  * SatTemp(temp_x, pth, damp, e1, e2) * (e2-e1) * abs(conj(∇(u1h)) ⋅ ∇(u1h)) / (e1 + (e2 - e1) * pth)
         return part1 + part2
     end
 end
@@ -97,7 +100,7 @@ function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     w2_vec =  A2_mat \ (B_mat * v2_vec)
     w2h = FEFunction(gridap.FE_U, w2_vec) 
     
-    B_temp = MatrixdB1(pth, u1h, v2h; gridap, usat, damp)
+    B_temp = MatrixdB1(pth, u1h, v2h; gridap, usat, damp, e1=abs2(phys1.nf^2), e2=abs2(phys1.nm^2))
     w1_vec = A1_mat' \ (B_temp * u1_vec)
     w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
     l_temp(dp) = ∫(real(((pf->Dptdpf(pf; control))∘pfh)*pBdp(pth, u1h, v2h, usat, damp, abs2(phys1.nf^2), abs2(phys1.nm^2)) * control.Bp
