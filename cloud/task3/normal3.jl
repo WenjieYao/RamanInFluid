@@ -23,7 +23,7 @@ init_ratio = 0.8
 init_ratioL = 1.0
 init_value = 1.0
 init_r = 5
-usat = 50
+usat = 10
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -121,7 +121,7 @@ p_init[p_init .> 0.1] .= init_value
 
 β_list = [8.0, 8.0, 16.0, 16.0, 32.0, 32.0, 32.0]
 Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
-d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e2
+d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e3
 
 g_opt = 0
 for bi = 1 : 6
