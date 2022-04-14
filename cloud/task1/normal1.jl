@@ -37,7 +37,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 400           # Length of the normal region
+L = 200           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
@@ -79,7 +79,7 @@ r = (init_r, init_r)  # Filter radius
 K = 20
 
 # Amplify g for NLopt
-Amp = 1e-5
+Amp = 1e-4
 
 # Sum over kx
 nkx = 30
@@ -124,11 +124,11 @@ Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
 d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e3
 
 g_opt = 0
-for bi = 1 : 6
+for bi = 1 : 7
     β = β_list[bi]
     α = 1/(2*Q_list[bi])
     damp = d_list[bi]
-    if bi < 6
+    if bi < 5
         c = 0
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
     else
