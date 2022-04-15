@@ -20,9 +20,9 @@ include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
 
 init_ratio = 1.0
-init_ratioL = 1.0
-init_value = 0.5
-init_r = 5
+init_ratioL = 0.5
+init_value = 1.0
+init_r = 2
 usat = Inf
 
 material = "Ag"
@@ -37,7 +37,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 300           # Length of the normal region
+L = 400           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
@@ -111,9 +111,9 @@ end
 
 kb = 0
 p_trunc(x, ratio) = x[2] < (ratio * hd) ? 1 : 0
-binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
+# binitialfunc(v) = ∫(v * x->p_trunc(x, init_ratio))gridap.dΩ
 # binitialfunc(v) = ∫(v * x->p_bowtie(x, 20, 80, L, hd))gridap.dΩ
-# binitialfunc(v) = ∫(v * x->p_triangle(x, init_ratio * hd, init_ratioL * L))gridap.dΩ
+binitialfunc(v) = ∫(v * x->p_triangle(x, init_ratio * hd, init_ratioL * L))gridap.dΩ
 pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0

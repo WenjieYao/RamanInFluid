@@ -105,7 +105,11 @@ function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     w2_vec =  A2_mat \ (B_mat * v2_vec)
     w2h = FEFunction(gridap.FE_U, w2_vec) 
     
-    B_temp = MatrixdB1(pth, u1h, v2h; gridap, usat, damp, e1=abs2(phys1.nf^2), e2=abs2(phys1.nm^2), e3=abs2(phys2.nm^2))
+    if control.Bp
+        B_temp = MatrixdB1(pth, u1h, v2h; gridap, usat, damp, e1=abs2(phys1.nf^2), e2=abs2(phys1.nm^2), e3=abs2(phys2.nm^2))
+    else
+        B_temp = MatrixB(pth, v2h; control, gridap)
+    end
     w1_vec = A1_mat' \ (B_temp * u1_vec)
     w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
     l_temp(dp) = ∫(real(((pf->Dptdpf(pf; control))∘pfh)*pBdp(pth, u1h, v2h, usat, damp, abs2(phys1.nf^2), abs2(phys1.nm^2), abs2(phys2.nm^2)) * control.Bp

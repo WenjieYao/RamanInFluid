@@ -99,7 +99,7 @@ function MatrixB(pth, uh; control, gridap, usat = Inf, damp = 1, e1 = 1, e2 = 1,
         end
     else
         B_mat = assemble_matrix(gridap.FE_U, gridap.FE_V) do u, v
-            ∫((x->GaussianD(x, hrd, [2,2]))* (conj(∇(v) ⋅ ∇(uh)) * ((∇(u) ⋅ ∇(uh)))))gridap.dΩ
+            ∫((x->GaussianD(x, [0, 100], [1,1]))* (conj(∇(uh)) ⋅ ∇(uh) * (∇(u) ⋅ ∇(v))))gridap.dΩ
         end
     end
     return B_mat
