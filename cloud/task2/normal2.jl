@@ -23,7 +23,7 @@ init_ratio = 0.2
 init_ratioL = 1.0
 init_value = 1.0
 init_r = 2
-usat = Inf
+usat = 20
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -37,7 +37,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 400           # Length of the normal region
+L = 300           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
@@ -127,7 +127,7 @@ g_opt = 0
 for bi = 1 : 7
     β = β_list[bi]
     α = 1/(2*Q_list[bi])
-    damp = d_list[bi]
+    damp = d_list[bi]* 10 / usat
     if bi < 9
         c = 0
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)
@@ -137,10 +137,10 @@ for bi = 1 : 7
     end
 
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 100; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
     end
     # if bi == 1
     #     g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
