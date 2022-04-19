@@ -23,12 +23,12 @@ init_ratio = 0.8
 init_ratioL = 2.0
 init_value = 1.0
 init_r = 2
-usat = (10)^2/4
+usat = Inf#(10)^2/4
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
-λ1 = 532
-λ2 = 549
+λ1 = 400#532
+λ2 = 427#549
 nm1 = n_λ(λ1) + 1im * k_λ(λ1)
 nm2 = n_λ(λ2) + 1im * k_λ(λ2)
 nf = sqrt(1.77)
@@ -37,7 +37,7 @@ R = 1e-10
 
 hr = (λ1+λ2)/nf/4          # Height of Raman molecule
 # Geometry parameters of the mesh
-L = 200           # Length of the normal region
+L = 300           # Length of the normal region
 hair = 500 + hr       # Height of the air region
 hs = 300 + hr         # Height of the source location in air
 ht = 200 + hr         # Height of the target location in air
@@ -121,13 +121,13 @@ p_init[p_init .> 0.1] .= init_value
 
 β_list = [8.0, 8.0, 16.0, 16.0, 32.0, 32.0, 32.0]
 Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
-d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e3
+d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e2
 
 g_opt = 0
 for bi = 1 : 7
     β = β_list[bi]
     α = 1/(2*Q_list[bi])
-    damp = d_list[bi] * 10 / usat
+    damp = d_list[bi] * 4
     if bi < 9
         c = 0
         control = ControllingParameters(flag_f, flag_t, r, β, η, α, nparts, nkx, K, Amp, Bp, pv, c, ηe, ηd, hrd)

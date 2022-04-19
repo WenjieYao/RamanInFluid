@@ -2,7 +2,7 @@ NO_FIELDS = ZeroTangent()
 function g0_pf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
-    A1_mat = MatrixA(pth, kb; phys=phys1, control, gridap)
+    A1_mat = MatrixA(pth, 0; phys=phys1, control, gridap)
     b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
     u1_vec = A1_mat\b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
@@ -88,7 +88,7 @@ end
 function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
-    A1_mat = MatrixA(pth, kb; phys=phys1, control, gridap)
+    A1_mat = MatrixA(pth, 0; phys=phys1, control, gridap)
     b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
     u1_vec = A1_mat \ b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
@@ -113,7 +113,7 @@ function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     w1_vec = A1_mat' \ (B_temp * u1_vec)
     w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
     l_temp(dp) = ∫(real(((pf->Dptdpf(pf; control))∘pfh)*pBdp(pth, u1h, v2h, usat, damp, abs2(phys1.nf^2), abs2(phys1.nm^2), abs2(phys2.nm^2)) * control.Bp
-                         - 2 * 1 * DAdpf(u1h, w1conjh, pfh, kb; phys=phys1, control)
+                         - 2 * 1 * DAdpf(u1h, w1conjh, pfh, 0; phys=phys1, control)
                          - 2 * 1 * DAdpf(w2h, v2conjh, pfh, kb; phys=phys2, control)) * dp)gridap.dΩ_d
     dg0dpf = assemble_vector(l_temp, gridap.FE_Pf)
     return dg0dpf
