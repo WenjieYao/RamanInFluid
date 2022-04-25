@@ -160,7 +160,7 @@ function g0_p(p0::Vector, grad::Vector; kb, phys1, phys2, control, gridap, usat 
     return g_value * control.Amp
 end
 
-function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, phys2, control, gridap, usat = Inf, damp = 1)
+function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500, kb = 0; phys1, phys2, control, gridap, usat = Inf, damp = 1)
     ##################### Optimize #################
     opt = Opt(:LD_MMA, gridap.np)
     lb = zeros(gridap.np)
@@ -169,7 +169,7 @@ function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, phys2, control
     opt.upper_bounds = ub
     opt.ftol_rel = TOL
     opt.maxeval = MAX_ITER
-    opt.max_objective = (p0, grad) -> g0_p(p0, grad; kb=0, phys1, phys2, control, gridap, usat, damp)
+    opt.max_objective = (p0, grad) -> g0_p(p0, grad; kb, phys1, phys2, control, gridap, usat, damp)
     if (length(p_init)==0)
         p_initial = readdlm("p_opt_value.txt", Float64)
         p_initial = p_initial[:]
