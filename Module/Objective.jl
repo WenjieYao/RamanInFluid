@@ -1,15 +1,15 @@
 NO_FIELDS = ZeroTangent()
-function g0_pf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
+function g0_pf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
-    A1_mat = MatrixA(pth, 0; phys=phys1, control, gridap)
+    A1_mat = MatrixA(pth, kb1; phys=phys1, control, gridap)
     b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
     u1_vec = A1_mat\b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
     B_mat = MatrixB(pth, u1h; control, gridap, usat, damp, e1=abs2(phys1.nf^2), e2=abs2(phys1.nm^2), e3=abs2(phys2.nm^2))
     # B_mat = MatrixB(pth, u1fix; control, gridap)
-    A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
+    A2_mat = MatrixA(pth, kb2; phys=phys2, control, gridap)
     o_vec = VectorO(1, 1; gridap)
     v2_vec = A2_mat'\o_vec
     g_temp = v2_vec' * B_mat * v2_vec
@@ -32,11 +32,11 @@ end
 
 # Chain Rule : 
 # dg/dpf=dg/dg * dg/dpf
-function rrule(::typeof(g0_pf), pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
+function rrule(::typeof(g0_pf), pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     function U_pullback(dgdg)
-      NO_FIELDS, dgdg * Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap, usat, damp)
+      NO_FIELDS, dgdg * Dg0dpf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
     end
-    g0_pf(pf_vec; kb, phys1, phys2, control, gridap, usat, damp), U_pullback
+    g0_pf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat, damp), U_pullback
 end
 
 Dptdpf(pf; control) = control.flag_t ? control.β * (1.0 - tanh(control.β * (pf - control.η))^2) / (tanh(control.β * control.η) + tanh(control.β * (1.0 - control.η))) : 1.0
@@ -85,17 +85,17 @@ function pBdp(pth, u1h, v2h, usat, damp, e1, e2, e3)
     end
 end
 
-function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
+function Dg0dpf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
-    A1_mat = MatrixA(pth, 0; phys=phys1, control, gridap)
+    A1_mat = MatrixA(pth, kb1; phys=phys1, control, gridap)
     b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
     u1_vec = A1_mat \ b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
     B_mat = MatrixB(pth, u1h; control, gridap, usat, damp, e1=abs2(phys1.nf^2), e2=abs2(phys1.nm^2), e3=abs2(phys2.nm^2))
     # B_mat = MatrixB(pth, u1fix; control, gridap)
-    A2_mat = MatrixA(pth, kb; phys=phys2, control, gridap)
+    A2_mat = MatrixA(pth, kb2; phys=phys2, control, gridap)
     o_vec = VectorO(1, 1; gridap)
     v2_vec = A2_mat' \ o_vec
     v2h = FEFunction(gridap.FE_U, v2_vec)
@@ -113,8 +113,8 @@ function Dg0dpf(pf_vec; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     w1_vec = A1_mat' \ (B_temp * u1_vec)
     w1conjh = FEFunction(gridap.FE_U, conj(w1_vec))
     l_temp(dp) = ∫(real(((pf->Dptdpf(pf; control))∘pfh)*pBdp(pth, u1h, v2h, usat, damp, abs2(phys1.nf^2), abs2(phys1.nm^2), abs2(phys2.nm^2)) * control.Bp
-                         - 2 * 1 * DAdpf(u1h, w1conjh, pfh, 0; phys=phys1, control)
-                         - 2 * 1 * DAdpf(w2h, v2conjh, pfh, kb; phys=phys2, control)) * dp)gridap.dΩ_d
+                         - 2 * 1 * DAdpf(u1h, w1conjh, pfh, kb1; phys=phys1, control)
+                         - 2 * 1 * DAdpf(w2h, v2conjh, pfh, kb2; phys=phys2, control)) * dp)gridap.dΩ_d
     dg0dpf = assemble_vector(l_temp, gridap.FE_Pf)
     return dg0dpf
 end
@@ -143,24 +143,24 @@ end
 
 
 # Final objective function
-function g0_p(p0::Vector; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
+function g0_p(p0::Vector; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     pf_vec = pf_p0(p0; control, gridap)
-    g0_pf(pf_vec; kb, phys1, phys2, control, gridap, usat, damp)
+    g0_pf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
 end
 
-function g0_p(p0::Vector, grad::Vector; kb, phys1, phys2, control, gridap, usat = Inf, damp = 1)
+function g0_p(p0::Vector, grad::Vector; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp = 1)
     if length(grad) > 0
-        dgdp, = Zygote.gradient(p -> g0_p(p; kb, phys1, phys2, control, gridap, usat, damp), p0)
+        dgdp, = Zygote.gradient(p -> g0_p(p; kb1, kb2, phys1, phys2, control, gridap, usat, damp), p0)
         grad[:] = dgdp * control.Amp
     end
-    g_value = g0_p(p0::Vector; kb, phys1, phys2, control, gridap, usat, damp)
+    g_value = g0_p(p0::Vector; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
     open("gvalue.txt", "a") do io
         write(io, "$g_value \n")
     end
     return g_value * control.Amp
 end
 
-function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500, kb = 0; phys1, phys2, control, gridap, usat = Inf, damp = 1)
+function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500, kb1=0, kb2 = 0; phys1, phys2, control, gridap, usat = Inf, damp = 1)
     ##################### Optimize #################
     opt = Opt(:LD_MMA, gridap.np)
     lb = zeros(gridap.np)
@@ -169,7 +169,7 @@ function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500, kb = 0; phys1, phys2,
     opt.upper_bounds = ub
     opt.ftol_rel = TOL
     opt.maxeval = MAX_ITER
-    opt.max_objective = (p0, grad) -> g0_p(p0, grad; kb, phys1, phys2, control, gridap, usat, damp)
+    opt.max_objective = (p0, grad) -> g0_p(p0, grad; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
     if (length(p_init)==0)
         p_initial = readdlm("p_opt_value.txt", Float64)
         p_initial = p_initial[:]
