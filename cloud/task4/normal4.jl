@@ -24,8 +24,8 @@ init_ratioL = 0.5
 init_value = 0.5
 init_r = 2
 usat = Inf#(10)^2/4
-kb1 = 0.5 
-kb2 = 0.5
+kb1 = VectorValue(sin(45/180*π) * ω1 * sqrt(1.77), 0)
+kb2 = VectorValue(sin(45/180*π) * ω2 * sqrt(1.77), 0)
 
 material = "Ag"
 n_λ, k_λ = RefractiveIndex(material,main_path,true)
@@ -126,7 +126,7 @@ Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
 d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e2
 
 g_opt = 0
-for bi = 1 : 7
+for bi = 1 : 6
     β = β_list[bi]
     α = 1/(2*Q_list[bi])
     damp = d_list[bi] * 4
@@ -139,10 +139,10 @@ for bi = 1 : 7
     end
 
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 70, kb1, kb2; phys1, phys2, control, gridap, usat, damp)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_p_optimize([], 1e-12, 70, kb1, kb2; phys1, phys2, control, gridap, usat, damp)
     end
     # if bi == 1
     #     g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 100; phys1, phys2, control, gridap)
