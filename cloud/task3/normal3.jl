@@ -147,7 +147,7 @@ for bi = 1 : 6
     # else
     #     g_opt, p_opt = g0_p_optimize([], 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
     # end
-    if bi == 0
+    if bi == 1
         g_opt, p_opt = g0_pkb_optimize(np_init, 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
     
     else
