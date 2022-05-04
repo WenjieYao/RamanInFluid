@@ -153,7 +153,7 @@ function g0_p(p0::Vector, grad::Vector; kb1, kb2, phys1, phys2, control, gridap,
         dgdp, = Zygote.gradient(p -> g0_p(p; kb1, kb2, phys1, phys2, control, gridap, usat, damp), p0)
         grad[:] = dgdp * control.Amp
     end
-    g_value = g0_p(p0::Vector; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
+    g_value = g0_p(p0; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
     open("gvalue.txt", "a") do io
         write(io, "$g_value \n")
     end
@@ -170,6 +170,67 @@ function g0_p_optimize(p_init, TOL = 1e-4, MAX_ITER = 500, kb1=0, kb2 = 0; phys1
     opt.ftol_rel = TOL
     opt.maxeval = MAX_ITER
     opt.max_objective = (p0, grad) -> g0_p(p0, grad; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
+    if (length(p_init)==0)
+        p_initial = readdlm("p_opt_value.txt", Float64)
+        p_initial = p_initial[:]
+    else
+        p_initial = p_init[:]
+    end
+    if control.pv < 1
+        inequality_constraint!(opt, (x, g) -> VolumeConstraint(x, g; control, gridap), 1e-2)
+    end
+    if control.c > 0
+        inequality_constraint!(opt, (x, g) -> LSConstraint(x, g; control, gridap), 1e-2)
+        inequality_constraint!(opt, (x, g) -> LWConstraint(x, g; control, gridap), 1e-2)
+    end
+
+    (g_opt, p_opt, ret) = optimize(opt, p_initial)
+    @show numevals = opt.numevals # the number of function evaluations
+    
+    return g_opt / control.Amp, p_opt
+end
+
+function dgdkb(p0, kb1, kb2; phys1, phys2, control, gridap, usat, damp)
+    dkb = VectorValue(1e-6,0)
+    g0 = g0_p(p0; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
+    g1 = g0_p(p0; kb1=(kb1+dkb), kb2, phys1, phys2, control, gridap, usat, damp) 
+    g2 = g0_p(p0; kb1, kb2=(kb2+dkb), phys1, phys2, control, gridap, usat, damp)
+    return (g1-g0)*1e6, (g2-g0)*1e6
+end
+
+function g0_pkb(pkb::Vector, grad::Vector; phys1, phys2, control, gridap, usat = Inf, damp = 1)
+    p0 = pkb[1:end-2]
+    kb1 = VectorValue(pkb[end-1],0)
+    kb2 = VectorValue(pkb[end],0)
+    if length(grad) > 0
+        dgdp, = Zygote.gradient(p -> g0_p(p; kb1, kb2, phys1, phys2, control, gridap, usat, damp), p0)
+        grad[1:end-2] = dgdp * control.Amp
+        dgdk1, dgdk2 = dgdkb(p0, kb1, kb2; phys1, phys2, control, gridap, usat, damp)
+        grad[end-1] = dgdk1 * control.Amp
+        grad[end] = dgdk2 * control.Amp
+    end
+    g_value = g0_p(p0; kb1, kb2, phys1, phys2, control, gridap, usat, damp)
+    open("gvalue.txt", "a") do io
+        write(io, "$g_value \n")
+    end
+    return g_value * control.Amp
+end
+
+
+function g0_pkb_optimize(p_init, TOL = 1e-4, MAX_ITER = 500; phys1, phys2, control, gridap, usat = Inf, damp = 1)
+    ##################### Optimize #################
+    opt = Opt(:LD_MMA, gridap.np+2)
+    lb = zeros(gridap.np+2)
+    ub = ones(gridap.np+2)
+    lb[end-1] = -sin(70/180*π) * phys1.ω * phys1.nf
+    ub[end-1] = sin(70/180*π) * phys1.ω * phys1.nf
+    lb[end] = -sin(70/180*π) * phys2.ω * phys2.nf
+    ub[end] = sin(70/180*π) * phys2.ω * phys2.nf
+    opt.lower_bounds = lb
+    opt.upper_bounds = ub
+    opt.ftol_rel = TOL
+    opt.maxeval = MAX_ITER
+    opt.max_objective = (pkb, grad) -> g0_pkb(pkb, grad; phys1, phys2, control, gridap, usat, damp)
     if (length(p_init)==0)
         p_initial = readdlm("p_opt_value.txt", Float64)
         p_initial = p_initial[:]
