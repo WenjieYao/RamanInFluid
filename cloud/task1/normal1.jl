@@ -21,7 +21,7 @@ include(main_path*"Module/Objective.jl")
 
 init_ratio = 0.5
 init_ratioL = 1.0
-init_value = 0.5
+init_value = 1.0
 init_r = 2
 usat = Inf#(10)^2/4
 kb1 = VectorValue(sin(45/180*π) * sqrt(1.77), 0)
