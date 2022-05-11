@@ -1,16 +1,18 @@
 NO_FIELDS = ZeroTangent()
 function g0_pf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp = 1)
+    θ1 = asin(kb1[1]/phys1.nf/phys1.ω)
+    θ2 = asin(kb2[1]/phys2.nf/phys2.ω)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
     A1_mat = MatrixA(pth, kb1; phys=phys1, control, gridap)
-    b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
+    b1_vec = assemble_vector(v->(∫(v*sqrt(cos(θ1)))gridap.dΓ_s), gridap.FE_V)
     u1_vec = A1_mat\b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
     B_mat = MatrixB(pth, u1h; control, gridap, usat, damp, e1=abs2(phys1.nf^2), e2=abs2(phys1.nm^2), e3=abs2(phys2.nm^2))
     # B_mat = MatrixB(pth, u1fix; control, gridap)
     A2_mat = MatrixA(pth, kb2; phys=phys2, control, gridap)
-    o_vec = VectorO(1, 1; gridap)
+    o_vec = assemble_vector(v->(∫(v*sqrt(cos(θ2)))gridap.dΓ_t), gridap.FE_V)
     v2_vec = A2_mat'\o_vec
     g_temp = v2_vec' * B_mat * v2_vec
     # g_temp = v2fix_vec' * B_mat * v2fix_vec
@@ -86,17 +88,19 @@ function pBdp(pth, u1h, v2h, usat, damp, e1, e2, e3)
 end
 
 function Dg0dpf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp = 1)
+    θ1 = asin(kb1[1]/phys1.nf/phys1.ω)
+    θ2 = asin(kb2[1]/phys2.nf/phys2.ω)
     pfh = FEFunction(gridap.FE_Pf, pf_vec)
     pth = (pf -> Threshold(pf; control)) ∘ pfh
     A1_mat = MatrixA(pth, kb1; phys=phys1, control, gridap)
-    b1_vec = assemble_vector(v->(∫(v)gridap.dΓ_s), gridap.FE_V)
+    b1_vec = assemble_vector(v->(∫(v*sqrt(cos(θ1)))gridap.dΓ_s), gridap.FE_V)
     u1_vec = A1_mat \ b1_vec
     u1h = FEFunction(gridap.FE_U, u1_vec)
     
     B_mat = MatrixB(pth, u1h; control, gridap, usat, damp, e1=abs2(phys1.nf^2), e2=abs2(phys1.nm^2), e3=abs2(phys2.nm^2))
     # B_mat = MatrixB(pth, u1fix; control, gridap)
     A2_mat = MatrixA(pth, kb2; phys=phys2, control, gridap)
-    o_vec = VectorO(1, 1; gridap)
+    o_vec = assemble_vector(v->(∫(v*sqrt(cos(θ2)))gridap.dΓ_t), gridap.FE_V)
     v2_vec = A2_mat' \ o_vec
     v2h = FEFunction(gridap.FE_U, v2_vec)
     # v2h = FEFunction(gridap.FE_U, v2fix_vec)

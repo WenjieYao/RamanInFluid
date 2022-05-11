@@ -23,7 +23,7 @@ init_ratio = 1.0
 init_ratioL = 2.0
 init_value = 0.5
 init_r = 2
-usat = (10)^2/4
+usat = Inf#(10)^2/4
 kb1 = VectorValue(sin(45/180*π) * sqrt(1.77), 0)
 kb2 = VectorValue(sin(45/180*π) * sqrt(1.77), 0)
 
