@@ -18,9 +18,6 @@ function g0_pf(pf_vec; kb1, kb2, phys1, phys2, control, gridap, usat = Inf, damp
     # g_temp = v2fix_vec' * B_mat * v2fix_vec
     @assert abs(imag(g_temp) / real(g_temp)) < 1e-6
     real(g_temp)
-    # v2h = FEFunction(gridap.FE_U, v2_vec)
-    # sum(∫((1 - 1 * pth) * abs2(∇(v2h) ⋅ ∇(u1h)))gridap.dΩ_d)
-    # sum(∫((1 - pth) * abs2(v2h * u1h))gridap.dΩ_d)
 end
 
 #pf = pf_p0(p0)
