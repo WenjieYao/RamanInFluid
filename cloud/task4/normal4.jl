@@ -24,6 +24,7 @@ init_ratioL = 0.5
 init_value = 0.5
 init_r = 2
 usat = Inf#(10)^2/4
+theta1 = 30
 kb1 = VectorValue(sin(45/180*π) * sqrt(1.77), 0)
 kb2 = VectorValue(sin(45/180*π) * sqrt(1.77), 0)
 
@@ -125,8 +126,8 @@ p_init[p_init .> 0.1] .= init_value
 Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
 d_list = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-2, 1e-2]*1e2
 
-np_init = ones(gridap.np+2) * sin(30/180*π) * ω1 * nf
-np_init[1:end-2] = p_init[:]
+np_init = ones(gridap.np+1) * sin(30/180*π) * ω2 * nf
+np_init[1:end-1] = p_init[:]
 
 g_opt = 0
 for bi = 1 : 6
@@ -148,10 +149,10 @@ for bi = 1 : 6
     #     g_opt, p_opt = g0_p_optimize([], 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
     # end
     if bi == 1
-        g_opt, p_opt = g0_pkb_optimize(np_init, 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_pkb1_optimize(np_init, theta1, 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
     
     else
-        g_opt, p_opt = g0_pkb_optimize([], 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0_pkb1_optimize([], theta1, 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
     end
     if isfile("p_opt.value.txt")
         run(`rm p_opt_value.txt`)
