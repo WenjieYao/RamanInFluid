@@ -18,6 +18,7 @@ include(main_path*"Module/GridapFE.jl")
 include(main_path*"Module/Control.jl")
 include(main_path*"Module/Model.jl")
 include(main_path*"Module/Objective.jl")
+include(main_path*"Module/Objective_Surface.jl")
 
 init_ratio = 0.5
 init_ratioL = 1.0
