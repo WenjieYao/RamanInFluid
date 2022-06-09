@@ -26,7 +26,7 @@ init_value = 0.5
 init_r = 2
 usat = Inf#(10)^2/4
 theta1 = 30
-kb1 = VectorValue(sin(30/180*π) * sqrt(1.77), 0)
+kb1 = VectorValue(sin(0/180*π) * sqrt(1.77), 0)
 kb2 = VectorValue(sin(0/180*π) * sqrt(1.77), 0)
 
 material = "Ag"
@@ -121,7 +121,7 @@ binitialfunc(v) = ∫(v * x->p_triangle(x, init_ratio * hd, init_ratioL * L))gri
 pc_vec = assemble_vector(binitialfunc, gridap.FE_P)
 p_init = p_extract(pc_vec; gridap)
 p_init[p_init .< 0.1] .= 0
-p_init[p_init .> 0.1] .= init_value
+p_init[p_init .> 0.1] .= init_value+rand(1)[1]*0.1
 
 β_list = [8.0, 8.0, 16.0, 16.0, 32.0, 32.0, 32.0]
 Q_list = [10.0, 50.0, 100.0, 500.0, 1000.0, 1000.0, 1000.0]
@@ -144,10 +144,10 @@ for bi = 1 : 6
     end
 
     if bi == 1
-        g_opt, p_opt = g0_p_optimize(p_init, 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0s_p_optimize(p_init, 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
     
     else
-        g_opt, p_opt = g0_p_optimize([], 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
+        g_opt, p_opt = g0s_p_optimize([], 1e-12, 70, kb1 * ω1, kb2 * ω2; phys1, phys2, control, gridap, usat, damp)
     end
     # if bi == 1
     #     g_opt, p_opt = g0_pkb1_optimize(np_init, theta1, 1e-12, 70; phys1, phys2, control, gridap, usat, damp)
